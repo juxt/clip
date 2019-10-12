@@ -1,0 +1,6 @@
+{:paths ["src"]
+ :aliases
+ {:dev
+  {:extra-deps
+   {funcool/promesa {:mvn/version "4.0.2"}
+    manifold {:mvn/version "0.1.8"}}}}}
