@@ -136,6 +136,28 @@
         x))
     x))
 
+(defn- namespace-symbol
+  "Returns symbol unchanged if it has a namespace, or with clojure.core as it's
+  namespace otherwise."
+  [sym]
+  (if (namespace sym)
+    sym
+    (symbol "clojure.core" (name sym))))
+
+(defn- evaluate-pseudo-clojure
+  ([x]
+   (cond
+     (symbol? x)
+     ((requiring-resolve (namespace-symbol x)))
+     (list? x)
+     (apply (requiring-resolve (namespace-symbol (first x)))
+            (map evaluate-pseudo-clojure (rest x)))
+     ;; simple values are useful for testing, not so useful in real systems.
+     (or (number? x) (string? x) (keyword? x))
+     x
+     :else (throw (ex-info (str "`" (pr-str x) "` is not a valid high code form.")
+                           {:x x})))))
+
 (defn- starting
   [running-system component]
   (let [resolved-start (resolve-refs (get component :start) running-system)]
