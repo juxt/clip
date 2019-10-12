@@ -137,47 +137,40 @@
     x))
 
 (defn- starting
-  [system-config component]
-  {:component component
-   :run
-   (fn [running-system]
-     (let [resolved-start (resolve-refs
-                            (get-in system-config [component :start])
-                            running-system)]
-       (try
-         (eval resolved-start)
-         (catch Throwable e
-           (throw (ex-info
-                    "Error while creating system"
-                    {:partial-system running-system}
-                    e))))))})
+  [running-system component]
+  (let [resolved-start (resolve-refs (get component :start) running-system)]
+    (try
+      (eval resolved-start)
+      (catch Throwable e
+        (throw (ex-info
+                 "Error while creating system"
+                 {:partial-system running-system}
+                 e))))))
 
+;; rfish because it's kind-of a rf, but it returns a new element rather than
+;; performing an action to reduce into the existing accumulator.  It may be
+;; worth exploring whether a transducer-style next-rf could be used.  This
+;; could have the upside of making rfish composable in the same way xforms are.
 (defn- run
-  [accumulator-chain]
-  ;; todo: looks exactly like reduce now
-  (loop [acc nil
-         [f & fs] accumulator-chain]
-    (let [f (get f :run identity)
-          acc (assoc acc
-                     (get f :component (Object.))
-                     (f acc))]
-      (if (seq fs)
-        (recur acc fs)
-        acc))))
+  [rfish component-chain]
+  (reduce
+    (fn [acc [id component]]
+      (assoc acc id (rfish acc component)))
+    {}
+    component-chain))
 
 (defn- promesa-run
-  [accumulator-chain]
+  [rfish component-chain]
   (let [promise (requiring-resolve 'promesa.core/promise)
         then (requiring-resolve 'promesa.core/then)]
     (reduce
-      (fn [prom-chain f]
+      (fn [prom-chain [id component]]
         (-> prom-chain
             (then (fn [acc]
-                    (-> ((get f :run identity) acc)
-                        (then (fn [res]
-                                (assoc acc (get f :component (Object.)) res))))))))
+                    (-> (rfish acc component)
+                        (then (fn [res] (assoc acc id res))))))))
       (promise {})
-      accumulator-chain)))
+      component-chain)))
 
 (comment
   (def promesa-system
@@ -186,8 +179,9 @@
       :c {:start (+ (high/ref :a) (high/ref :b))}})
 
   @(promesa-run
-    (map #(starting promesa-system %)
-         (map first (sccs (system-dependency-graph promesa-system)))))
+     starting
+     (map #(find promesa-system (first %))
+          (sccs (system-dependency-graph promesa-system))))
   )
 
 (comment
@@ -196,8 +190,9 @@
       :b {:start (inc (high/ref :a))}})
 
   (run
-    (map #(starting system2 %)
-         (map first (sccs (system-dependency-graph system2))))))
+    starting
+    (map #(find system2 (first %))
+         (sccs (system-dependency-graph system2)))))
 
 (comment
   (cycles {:a #{:b}
