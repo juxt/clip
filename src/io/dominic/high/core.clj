@@ -127,17 +127,23 @@
 
 (def ^:private ref-to second)
 
+(defn- resolve-refs
+  [x ref-lookup]
+  (clojure.walk/postwalk
+    (fn [x]
+      (if (ref? x)
+        (get ref-lookup (ref-to x))
+        x))
+    x))
+
 (defn- starting
   [system-config component]
   {:component component
    :run
    (fn [running-system]
-     (let [resolved-start (clojure.walk/postwalk
-                            (fn [x]
-                              (if (ref? x)
-                                (get running-system (ref-to x))
-                                x))
-                            (get-in system-config [component :start]))]
+     (let [resolved-start (resolve-refs
+                            (get-in system-config [component :start])
+                            running-system)]
        (try
          (eval resolved-start)
          (catch Throwable e
