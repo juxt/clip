@@ -130,14 +130,16 @@
 
 (def ^:private ref-to second)
 
-(defn- resolve-refs
-  [x ref-lookup]
+(defn- resolver
+  [x p? lookup]
   (clojure.walk/postwalk
     (fn [x]
-      (if (ref? x)
-        (get ref-lookup (ref-to x))
-        x))
+      (if (p? x) (lookup x) x))
     x))
+
+(defn- resolve-refs
+  [x ref-lookup]
+  (resolver x ref? #(get ref-lookup (ref-to %))))
 
 (defn- namespace-symbol
   "Returns symbol unchanged if it has a namespace, or with clojure.core as it's
@@ -152,6 +154,19 @@
    (cond
      (symbol? x)
      ((requiring-resolve (namespace-symbol x)))
+     (list? x)
+     (apply (requiring-resolve (namespace-symbol (first x)))
+            (map evaluate-pseudo-clojure (rest x)))
+     ;; simple values are useful for testing, not so useful in real systems.
+     (or (number? x) (string? x) (keyword? x))
+     x
+     :else (throw (ex-info (str "`" (pr-str x) "` is not a valid high code form.")
+                           {:x x}))))
+
+  ([x implicit-target]
+   (cond
+     (symbol? x)
+     ((requiring-resolve (namespace-symbol x)) implicit-target)
      (list? x)
      (apply (requiring-resolve (namespace-symbol (first x)))
             (map evaluate-pseudo-clojure (rest x)))
@@ -210,20 +225,26 @@
   [rf]
   (fn
     ([running-system [id component :as entry]]
-     (let [stop! (or (get component :stop)
-                     (if (some-> (get running-system id)
-                                 class
-                                 (isa? java.io.Closeable))
-                       (.close ^java.io.Closeable (get running-system id))
-                       identity))]
-       (try
-         (rf running-system entry)
-         (catch Throwable e
-           (throw
-             (ex-info
-               "Error while stopping system"
-               {:partial-system running-system}
-               e))))))))
+     (let [inst (get running-system id)]
+       (cond
+         (get component :stop)
+         (evaluate-pseudo-clojure
+           (-> (get component :stop)
+               (resolver #(= 'this %) (constantly inst)))
+           inst)
+
+         (some-> (get running-system id)
+                 class
+                 (isa? java.io.Closeable))
+         (.close ^java.io.Closeable inst)))
+     (try
+       (rf running-system entry)
+       (catch Throwable e
+         (throw
+           (ex-info
+             "Error while stopping system"
+             {:partial-system running-system}
+             e)))))))
 
 (defn- run
   ([xf component-chain]
@@ -262,6 +283,8 @@
            :pre-start (println "aaaa")}
       :a {:pre-start (println 10)
           :start (promesa.core/resolved 5)}
+      :num {:start 10
+            :stop (println "num-->" this)}
       :b {:start (promesa.core/resolved (inc (high/ref :a)))}
       :c {:start (+ (high/ref :a) (high/ref :b))}})
 
@@ -292,7 +315,8 @@
   (def system2
     '{:a {:start (io.dominic.high.core/StatefulThing)
           :pre-start (println "aaaa")}
-      :num {:start 10}
+      :num {:start 10
+            :stop (println "num-->" this)}
       :b {:start (inc (high/ref :num))
           :pre-start (println "bbbb")}})
 
