@@ -5,53 +5,56 @@
 (defn- sccs
   "Returns a topologically sorted list of strongly connected components.
   Tarjan's algorithm."
-  [g]
-  (let [strong-connect (fn strong-connect
-                         [acc v]
-                         (let [acc (-> acc
-                                       (assoc-in [:idxs v] (:idx acc))
-                                       (assoc-in [:low-links v] (:idx acc))
-                                       (update :idx inc)
-                                       (update :S conj v)
-                                       (assoc-in [:on-stack v] true))
-                               acc (reduce (fn [acc w]
-                                             (cond
-                                               (not (get-in acc [:idxs w]))
-                                               (let [acc (strong-connect acc w)]
-                                                 (update-in acc [:low-links v] min (get-in acc [:low-links w])))
-
-                                               (get-in acc [:on-stack w])
-                                               (update-in acc [:low-links v] min (get-in acc [:idxs w]))
-
-                                               :else
-                                               acc))
-                                           acc
-                                           (get g v))]
-                           (if (= (get-in acc [:idxs v]) (get-in acc [:low-links v]))
-                             (let [[S on-stack scc] (loop [S (:S acc)
-                                                           on-stack (:on-stack acc)
-                                                           scc #{}]
-                                                      (let [w (peek S)
-                                                            S (pop S)
-                                                            on-stack (dissoc on-stack w)
-                                                            scc (conj scc w)]
-                                                        (if (= v w)
-                                                          [S on-stack scc]
-                                                          (recur S on-stack scc))))]
-                               (-> acc
-                                   (assoc :S S :on-stack on-stack)
-                                   (update :sccs conj scc)))
-                             acc)))]
-    (:sccs
-      (reduce
-        (fn [acc v]
-          (if-not (contains? (:idxs acc) v)
-            (strong-connect acc v)
-            acc))
-        {:S ()
-         :idx 0
-         :sccs []}
-        (keys g)))))
+  ([g] (sccs g []))
+  ([g sccs-init]
+   (let [strong-connect
+           (fn strong-connect [acc v]
+             (let [acc (-> acc
+                           (assoc-in [:idxs v] (:idx acc))
+                           (assoc-in [:low-links v] (:idx acc))
+                           (update :idx inc)
+                           (update :S conj v)
+                           (assoc-in [:on-stack v] true))
+                   acc (reduce
+                         (fn [acc w]
+                           (cond
+                             (not (get-in acc [:idxs w]))
+                               (let [acc (strong-connect acc w)]
+                                 (update-in acc
+                                            [:low-links v]
+                                            min
+                                            (get-in acc [:low-links w])))
+                             (get-in acc [:on-stack w])
+                               (update-in acc
+                                          [:low-links v]
+                                          min
+                                          (get-in acc [:idxs w]))
+                             :else acc))
+                         acc
+                         (get g v))]
+               (if (= (get-in acc [:idxs v]) (get-in acc [:low-links v]))
+                 (let [[S on-stack scc] (loop [S (:S acc)
+                                               on-stack (:on-stack acc)
+                                               scc #{}]
+                                          (let [w (peek S)
+                                                S (pop S)
+                                                on-stack (dissoc on-stack w)
+                                                scc (conj scc w)]
+                                            (if (= v w)
+                                              [S on-stack scc]
+                                              (recur S on-stack scc))))]
+                   (-> acc
+                       (assoc :S S
+                              :on-stack on-stack)
+                       (update :sccs conj scc)))
+                 acc)))]
+     (:sccs
+       (reduce (fn [acc v]
+                 (if-not (contains? (:idxs acc) v) (strong-connect acc v) acc))
+         {:S ()
+          :idx 0
+          :sccs sccs-init}
+         (keys g))))))
 
 (defn- cycles
   [sccs g]
@@ -194,7 +197,6 @@
   [rf]
   (fn
     ([running-system entry]
-     (prn "post-starting" running-system entry)
      (try
        (rf running-system entry)
        (catch Throwable e
@@ -204,59 +206,101 @@
              {:partial-system running-system}
              e)))))))
 
+(defn- stopping
+  [rf]
+  (fn
+    ([running-system [id component :as entry]]
+     (let [stop! (or (get component :stop)
+                     (if (some-> (get running-system id)
+                                 class
+                                 (isa? java.io.Closeable))
+                       (.close ^java.io.Closeable (get running-system id))
+                       identity))]
+       (try
+         (rf running-system entry)
+         (catch Throwable e
+           (throw
+             (ex-info
+               "Error while stopping system"
+               {:partial-system running-system}
+               e))))))))
+
 (defn- run
-  [xf component-chain]
-  (let [f (xf conj)]
-    (reduce f {} component-chain)))
+  ([xf component-chain]
+   (run xf {} component-chain))
+  ([xf init component-chain]
+   (let [f (xf conj)]
+     (reduce f init component-chain))))
 
 (defn- promesa-run
-  [xfs component-chain]
-  (let [promise (requiring-resolve 'promesa.core/promise)
-        then (requiring-resolve 'promesa.core/then)
-        promesa-wait
-        (fn [rf]
-          (let [then (requiring-resolve 'promesa.core/then)]
-            (fn [acc [id value]]
-              (-> value (then #(rf acc [id %]))))))
-        xf (apply comp (interpose promesa-wait xfs))
-        f (xf
-            (fn [acc [id value :as entry]]
-              (-> value
-                  (then (fn [value]
-                          (assoc acc id value))))))]
-    (reduce
-      (fn [prom-chain component]
-        (-> prom-chain
-            (then (fn [acc] (f acc component)))))
-      (promise {})
-      component-chain)))
+  ([xfs component-chain]
+   (promesa-run xfs ((requiring-resolve 'promesa.core/promise) {}) component-chain))
+  ([xfs init component-chain]
+   (let [promise (requiring-resolve 'promesa.core/promise)
+         then (requiring-resolve 'promesa.core/then)
+         promesa-wait
+         (fn [rf]
+           (let [then (requiring-resolve 'promesa.core/then)]
+             (fn [acc [id value]]
+               (-> value (then #(rf acc [id %]))))))
+         xf (apply comp (interpose promesa-wait xfs))
+         f (xf
+             (fn [acc [id value :as entry]]
+               (-> value
+                   (then (fn [value]
+                           (assoc acc id value))))))]
+     (reduce
+       (fn [prom-chain component]
+         (-> prom-chain
+             (then (fn [acc] (f acc component)))))
+       init
+       component-chain))))
 
 (comment
   (def promesa-system
-    '{:a {:pre-start (println 10)
+    '{foo {:start (io.dominic.high.core/StatefulThing)
+           :pre-start (println "aaaa")}
+      :a {:pre-start (println 10)
           :start (promesa.core/resolved 5)}
       :b {:start (promesa.core/resolved (inc (high/ref :a)))}
       :c {:start (+ (high/ref :a) (high/ref :b))}})
 
-  
-
   @(promesa-run
-     [pre-starting starting post-starting]
-     (map #(find promesa-system (first %))
-          (sccs (system-dependency-graph promesa-system))))
+     [stopping]
+     @(promesa-run [pre-starting starting post-starting]
+                   (component-chain promesa-system))
+     (reverse-component-chain promesa-system))
   )
 
+(defn- component-chain
+  [system]
+  (map #(find system (first %))
+       (sccs (system-dependency-graph system))))
+
+(defn- reverse-component-chain
+  [system]
+  (map #(find system (first %))
+       (sccs (system-dependency-graph system) ())))
+
 (comment
+  (defn StatefulThing
+    []
+    (reify
+      java.io.Closeable
+      (close [this]
+        (println  "Closing a stateful thing"))))
   (def system2
-    '{:a {:start 5
+    '{:a {:start (io.dominic.high.core/StatefulThing)
           :pre-start (println "aaaa")}
-      :b {:start (inc (high/ref :a))
+      :num {:start 10}
+      :b {:start (inc (high/ref :num))
           :pre-start (println "bbbb")}})
 
   (run
-    (comp pre-starting starting post-starting)
-    (map #(find system2 (first %))
-         (sccs (system-dependency-graph system2)))))
+    stopping
+    (run (comp pre-starting starting post-starting)
+         (component-chain system2))
+    (reverse-component-chain system2)))
 
 (comment
   (cycles {:a #{:b}
