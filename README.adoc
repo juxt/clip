@@ -1,0 +1,27 @@
+= High
+
+== Rationale
+
+=== Boilerplate
+
+Existing dependency injection libraries require boilerplate for defining your components.
+This either comes in the form of multi-methods which must have their namespaces required for side-effects, or the creation of records in order to implement a protocol.
+These extension mechanisms are used to extend existing var calls in libraries.
+
+=== Transitions
+
+Side-effects are part of a startup process.
+The most common example is seeding a database.
+Before other components can function (such as a health check) the migration must have run.
+Existing approaches require us to either taint our component's `start` with additional side-effect code (complecting connection with migration) or to create side-effecting components which others must then depend upon.
+
+=== Async
+
+Async is a significant part of systems when doing ClojureScript applications.
+Something as simple as reading data from disk or fetching the user from a remote endpoint will cause your entire system to be aware of the callback.
+Interceptors have shown that async can be a layered-on concern, rather than being intrinsically present in all consumption of the result.
+
+=== Obvious
+
+Obvious connections between actions are easier to understand than obscure ones.
+Use of inheritance for references or relying on implicit dependencies increases the obscurity of your API.
