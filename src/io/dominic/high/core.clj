@@ -158,61 +158,103 @@
      :else (throw (ex-info (str "`" (pr-str x) "` is not a valid high code form.")
                            {:x x})))))
 
-(defn- starting
-  [running-system component]
-  (let [resolved-start (resolve-refs (get component :start) running-system)]
-    (try
-      (eval resolved-start)
-      (catch Throwable e
-        (throw (ex-info
-                 "Error while creating system"
-                 {:partial-system running-system}
-                 e))))))
+(defn- pre-starting
+  [rf]
+  (fn
+    ([running-system [_ component :as entry]]
+     (when (contains? component :pre-start)
+       (evaluate-pseudo-clojure
+         (resolve-refs
+           (get component :pre-start)
+           running-system)))
+     (try
+       (rf running-system entry)
+       (catch Throwable e
+         (throw
+           (ex-info
+             "Error while creating system"
+             {:partial-system running-system}
+             e)))))))
 
-;; rfish because it's kind-of a rf, but it returns a new element rather than
-;; performing an action to reduce into the existing accumulator.  It may be
-;; worth exploring whether a transducer-style next-rf could be used.  This
-;; could have the upside of making rfish composable in the same way xforms are.
+(defn- starting
+  [rf]
+  (fn
+    ([running-system [id component]]
+     (let [resolved-start (resolve-refs (get component :start) running-system)]
+       (try
+         (rf running-system [id (evaluate-pseudo-clojure resolved-start)])
+         (catch Throwable e
+           (throw
+             (ex-info
+               "Error while creating system"
+               {:partial-system running-system}
+               e))))))))
+
+(defn- post-starting
+  [rf]
+  (fn
+    ([running-system entry]
+     (prn "post-starting" running-system entry)
+     (try
+       (rf running-system entry)
+       (catch Throwable e
+         (throw
+           (ex-info
+             "Error while creating system"
+             {:partial-system running-system}
+             e)))))))
+
 (defn- run
-  [rfish component-chain]
-  (reduce
-    (fn [acc [id component]]
-      (assoc acc id (rfish acc component)))
-    {}
-    component-chain))
+  [xf component-chain]
+  (let [f (xf conj)]
+    (reduce f {} component-chain)))
 
 (defn- promesa-run
-  [rfish component-chain]
+  [xfs component-chain]
   (let [promise (requiring-resolve 'promesa.core/promise)
-        then (requiring-resolve 'promesa.core/then)]
+        then (requiring-resolve 'promesa.core/then)
+        promesa-wait
+        (fn [rf]
+          (let [then (requiring-resolve 'promesa.core/then)]
+            (fn [acc [id value]]
+              (-> value (then #(rf acc [id %]))))))
+        xf (apply comp (interpose promesa-wait xfs))
+        f (xf
+            (fn [acc [id value :as entry]]
+              (-> value
+                  (then (fn [value]
+                          (assoc acc id value))))))]
     (reduce
-      (fn [prom-chain [id component]]
+      (fn [prom-chain component]
         (-> prom-chain
-            (then (fn [acc]
-                    (-> (rfish acc component)
-                        (then (fn [res] (assoc acc id res))))))))
+            (then (fn [acc] (f acc component)))))
       (promise {})
       component-chain)))
 
 (comment
   (def promesa-system
-    '{:a {:start (promesa.core/resolved 5)}
+    '{:a {:pre-start (println 10)
+          :start (promesa.core/resolved 5)}
       :b {:start (promesa.core/resolved (inc (high/ref :a)))}
       :c {:start (+ (high/ref :a) (high/ref :b))}})
 
+  
+
   @(promesa-run
-     starting
+     [pre-starting starting post-starting]
      (map #(find promesa-system (first %))
           (sccs (system-dependency-graph promesa-system))))
   )
 
 (comment
   (def system2
-    '{:a {:start 5}
-      :b {:start (inc (high/ref :a))}})
+    '{:a {:start 5
+          :pre-start (println "aaaa")}
+      :b {:start (inc (high/ref :a))
+          :pre-start (println "bbbb")}})
 
   (run
-    starting
+    (comp pre-starting starting post-starting)
     (map #(find system2 (first %))
          (sccs (system-dependency-graph system2)))))
 
