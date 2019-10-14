@@ -1,5 +1,8 @@
 = High
 
+High is an inversion of control API which minimizes impact on your code.
+It is an alternative to integrant, mount or component.
+
 == Rationale
 
 === Boilerplate
