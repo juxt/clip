@@ -138,8 +138,11 @@
     x))
 
 (defn- resolve-refs
-  [x ref-lookup]
-  (resolver x ref? #(get ref-lookup (ref-to %))))
+  ([x ref-lookup]
+   (resolve-refs x nil ref-lookup))
+  ([x resolve-ref ref-lookup]
+   (let [resolve-ref (or resolve-ref identity)]
+     (resolver x ref? #(resolve-ref (get ref-lookup (ref-to %)))))))
 
 (defn- namespace-symbol
   "Returns symbol unchanged if it has a namespace, or with clojure.core as it's
@@ -174,14 +177,17 @@
 (defn- pre-starting
   [rf]
   (fn
-    ([running-system id component value]
-     (when (contains? component :pre-start)
-       (evaluate-pseudo-clojure
-         (resolve-refs
-           (get component :pre-start)
-           running-system)))
+    ([running-system system-config id value]
+     (let [component (get system-config id)]
+       (when (contains? component :pre-start)
+         (evaluate-pseudo-clojure
+           (resolve-refs
+             (get component :pre-start)
+             (some->> (get component :resolve)
+                      (partial evaluate-pseudo-clojure))
+             running-system))))
      (try
-       (rf running-system id component value)
+       (rf running-system system-config id value)
        (catch Throwable e
          (throw
            (ex-info
@@ -192,14 +198,17 @@
 (defn- starting
   [rf]
   (fn
-    ([running-system id component _]
-     (let [resolved-start
+    ([running-system system-config id _]
+     (let [component (get system-config id)
+           resolved-start
            (resolve-refs (get component :start)
+                         (some->> (get component :resolve)
+                                  (partial evaluate-pseudo-clojure))
                          running-system)]
        (try
          (rf running-system
+             system-config
              id
-             component
              (evaluate-pseudo-clojure resolved-start))
          (catch Throwable e
            (throw
@@ -211,15 +220,19 @@
 (defn- post-starting
   [rf]
   (fn
-    ([running-system id component started]
+    ([running-system system-config id started]
      (try
-       (when (contains? component :post-start)
-         (evaluate-pseudo-clojure
-           (-> (get component :post-start)
-               (resolve-refs running-system)
-               (resolver #(= 'this %) (constantly started)))
-           started))
-       (rf running-system id component started)
+       (let [component (get system-config id)]
+         (when (contains? component :post-start)
+           (evaluate-pseudo-clojure
+             (-> (get component :post-start)
+                 (resolve-refs
+                   (some->> (get component :resolve)
+                            (partial evaluate-pseudo-clojure))
+                   running-system)
+                 (resolver #(= 'this %) (constantly started)))
+             started))
+         (rf running-system system-config id started))
        (catch Throwable e
          (throw
            (ex-info
@@ -230,8 +243,9 @@
 (defn- stopping
   [rf]
   (fn
-    ([running-system id component v]
-     (let [inst (get running-system id)]
+    ([running-system system-config id v]
+     (let [inst (get running-system id)
+           component (get system-config id)]
        (cond
          (get component :stop)
          (evaluate-pseudo-clojure
@@ -242,23 +256,23 @@
          (some-> (get running-system id)
                  class
                  (isa? java.io.Closeable))
-         (.close ^java.io.Closeable inst)))
-     (try
-       (rf running-system id component v)
-       (catch Throwable e
-         (throw
-           (ex-info
-             "Error while stopping system"
-             {:partial-system running-system}
-             e)))))))
+         (.close ^java.io.Closeable inst))
+       (try
+         (rf running-system system-config id v)
+         (catch Throwable e
+           (throw
+             (ex-info
+               "Error while stopping system"
+               {:partial-system running-system}
+               e))))))))
 
 (defn- run
-  ([xf component-chain]
-   (run xf {} component-chain))
-  ([xf init component-chain]
-   (let [f (xf (fn [acc id _ v] (conj acc [id v])))]
+  ([xf system-config component-chain]
+   (run xf {} system-config component-chain))
+  ([xf init system-config component-chain]
+   (let [f (xf (fn [acc _ id v] (conj acc [id v])))]
      (reduce (fn [init [id component]]
-               (f init id component (get init id)))
+               (f init system-config id (get init id)))
              init
              component-chain))))
 
@@ -331,13 +345,16 @@
           :pre-start (println "bbbb")
           :post-start  (println "postpostpost" this)}})
 
-  (run (comp pre-starting starting post-starting)
+  (run starting
+       system2
        (component-chain system2))
 
   (run
     stopping
     (run (comp pre-starting starting post-starting)
+         system2
          (component-chain system2))
+    system2
     (reverse-component-chain system2)))
 
 (comment
