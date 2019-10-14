@@ -222,7 +222,8 @@
          (evaluate-pseudo-clojure
            (-> (get component :post-start)
                (resolve-refs running-system)
-               (resolver #(= 'this %) (constantly started)))))
+               (resolver #(= 'this %) (constantly started)))
+           started))
        (rf running-system id component started)
        (catch Throwable e
          (throw
