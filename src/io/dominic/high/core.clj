@@ -166,6 +166,9 @@
      (symbol? x)
      ((requiring-resolve (namespace-symbol x)) implicit-target)
 
+     (keyword? x)
+     (get implicit-target x)
+
      :else (evaluate-pseudo-clojure x))))
 
 (defn- pre-starting
