@@ -154,14 +154,12 @@
    (cond
      (symbol? x)
      ((requiring-resolve (namespace-symbol x)))
-     (list? x)
-     (apply (requiring-resolve (namespace-symbol (first x)))
+     (sequential? x)
+     (apply (if (symbol? (first x))
+              (requiring-resolve (namespace-symbol (first x)))
+              (evaluate-pseudo-clojure (first x)))
             (map evaluate-pseudo-clojure (rest x)))
-     ;; simple values are useful for testing, not so useful in real systems.
-     (or (number? x) (string? x) (keyword? x))
-     x
-     :else (throw (ex-info (str "`" (pr-str x) "` is not a valid high code form.")
-                           {:x x}))))
+     :else x))
 
   ([x implicit-target]
    (cond
