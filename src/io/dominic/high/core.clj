@@ -138,11 +138,16 @@
     x))
 
 (defn- resolve-refs
-  ([x ref-lookup]
-   (resolve-refs x nil ref-lookup))
-  ([x resolve-ref ref-lookup]
-   (let [resolve-ref (or resolve-ref identity)]
-     (resolver x ref? #(resolve-ref (get ref-lookup (ref-to %)))))))
+  [x system-config running-system]
+  (resolver x
+            ref?
+            (fn [ref-list]
+              (let [to (ref-to ref-list)]
+                (cond->> (get running-system to)
+
+                  (get-in system-config [to :resolve])
+                  (evaluate-pseudo-clojure
+                    (get-in system-config [to :resolve])))))))
 
 (defn- namespace-symbol
   "Returns symbol unchanged if it has a namespace, or with clojure.core as it's
@@ -183,8 +188,7 @@
          (evaluate-pseudo-clojure
            (resolve-refs
              (get component :pre-start)
-             (some->> (get component :resolve)
-                      (partial evaluate-pseudo-clojure))
+             system-config
              running-system))))
      (try
        (rf running-system system-config id value)
@@ -202,8 +206,7 @@
      (let [component (get system-config id)
            resolved-start
            (resolve-refs (get component :start)
-                         (some->> (get component :resolve)
-                                  (partial evaluate-pseudo-clojure))
+                         system-config
                          running-system)]
        (try
          (rf running-system
@@ -226,10 +229,7 @@
          (when (contains? component :post-start)
            (evaluate-pseudo-clojure
              (-> (get component :post-start)
-                 (resolve-refs
-                   (some->> (get component :resolve)
-                            (partial evaluate-pseudo-clojure))
-                   running-system)
+                 (resolve-refs system-config running-system)
                  (resolver #(= 'this %) (constantly started)))
              started))
          (rf running-system system-config id started))
