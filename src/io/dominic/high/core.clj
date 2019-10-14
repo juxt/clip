@@ -179,14 +179,14 @@
 (defn- pre-starting
   [rf]
   (fn
-    ([running-system [_ component :as entry]]
+    ([running-system id component value]
      (when (contains? component :pre-start)
        (evaluate-pseudo-clojure
          (resolve-refs
            (get component :pre-start)
            running-system)))
      (try
-       (rf running-system entry)
+       (rf running-system id component value)
        (catch Throwable e
          (throw
            (ex-info
@@ -197,10 +197,15 @@
 (defn- starting
   [rf]
   (fn
-    ([running-system [id component]]
-     (let [resolved-start (resolve-refs (get component :start) running-system)]
+    ([running-system id component _]
+     (let [resolved-start
+           (resolve-refs (get component :start)
+                         running-system)]
        (try
-         (rf running-system [id (evaluate-pseudo-clojure resolved-start)])
+         (rf running-system
+             id
+             component
+             (evaluate-pseudo-clojure resolved-start))
          (catch Throwable e
            (throw
              (ex-info
@@ -211,9 +216,14 @@
 (defn- post-starting
   [rf]
   (fn
-    ([running-system entry]
+    ([running-system id component started]
      (try
-       (rf running-system entry)
+       (when (contains? component :post-start)
+         (evaluate-pseudo-clojure
+           (-> (get component :post-start)
+               (resolve-refs running-system)
+               (resolver #(= 'this %) (constantly started)))))
+       (rf running-system id component started)
        (catch Throwable e
          (throw
            (ex-info
@@ -224,7 +234,7 @@
 (defn- stopping
   [rf]
   (fn
-    ([running-system [id component :as entry]]
+    ([running-system id component v]
      (let [inst (get running-system id)]
        (cond
          (get component :stop)
@@ -238,7 +248,7 @@
                  (isa? java.io.Closeable))
          (.close ^java.io.Closeable inst)))
      (try
-       (rf running-system entry)
+       (rf running-system id component v)
        (catch Throwable e
          (throw
            (ex-info
@@ -250,8 +260,11 @@
   ([xf component-chain]
    (run xf {} component-chain))
   ([xf init component-chain]
-   (let [f (xf conj)]
-     (reduce f init component-chain))))
+   (let [f (xf (fn [acc id _ v] (conj acc [id v])))]
+     (reduce (fn [init [id component]]
+               (f init id component (get init id)))
+             init
+             component-chain))))
 
 (defn- promesa-run
   ([xfs component-chain]
@@ -262,18 +275,18 @@
          promesa-wait
          (fn [rf]
            (let [then (requiring-resolve 'promesa.core/then)]
-             (fn [acc [id value]]
-               (-> value (then #(rf acc [id %]))))))
+             (fn [acc id component value]
+               (-> value (then #(rf acc id component %))))))
          xf (apply comp (interpose promesa-wait xfs))
          f (xf
-             (fn [acc [id value :as entry]]
+             (fn [acc id component value]
                (-> value
                    (then (fn [value]
                            (assoc acc id value))))))]
      (reduce
-       (fn [prom-chain component]
+       (fn [prom-chain [id component]]
          (-> prom-chain
-             (then (fn [acc] (f acc component)))))
+             (then (fn [acc] (f acc id component nil)))))
        init
        component-chain))))
 
