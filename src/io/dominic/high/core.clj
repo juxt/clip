@@ -290,6 +290,7 @@
       :a {:pre-start (println 10)
           :start (promesa.core/resolved 5)}
       :num {:start 10
+            :post-start (println "init-:num" (inc this))
             :stop (println "num-->" this)}
       :b {:start (promesa.core/resolved (inc (high/ref :a)))}
       :c {:start (+ (high/ref :a) (high/ref :b))}})
@@ -324,7 +325,11 @@
       :num {:start 10
             :stop (println "num-->" this)}
       :b {:start (inc (high/ref :num))
-          :pre-start (println "bbbb")}})
+          :pre-start (println "bbbb")
+          :post-start  (println "postpostpost" this)}})
+
+  (run (comp pre-starting starting post-starting)
+       (component-chain system2))
 
   (run
     stopping
