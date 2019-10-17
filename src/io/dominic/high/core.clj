@@ -277,26 +277,25 @@
              component-chain))))
 
 (defn- promesa-run
-  ([xfs component-chain]
-   (promesa-run xfs ((requiring-resolve 'promesa.core/promise) {}) component-chain))
-  ([xfs init component-chain]
+  ([xfs system-config component-chain]
+   (promesa-run xfs system-config ((requiring-resolve 'promesa.core/promise) {}) component-chain))
+  ([xfs system-config init component-chain]
    (let [promise (requiring-resolve 'promesa.core/promise)
          then (requiring-resolve 'promesa.core/then)
          promesa-wait
          (fn [rf]
-           (let [then (requiring-resolve 'promesa.core/then)]
-             (fn [acc id component value]
-               (-> value (then #(rf acc id component %))))))
+           (fn [acc system-config id value]
+             (-> value (then #(rf acc system-config id %)))))
          xf (apply comp (interpose promesa-wait xfs))
          f (xf
-             (fn [acc id component value]
+             (fn [acc system-config id value]
                (-> value
                    (then (fn [value]
                            (assoc acc id value))))))]
      (reduce
        (fn [prom-chain [id component]]
          (-> prom-chain
-             (then (fn [acc] (f acc id component nil)))))
+             (then (fn [acc] (f acc system-config id (get acc id))))))
        init
        component-chain))))
 
@@ -314,8 +313,10 @@
 
   @(promesa-run
      [stopping]
-     @(promesa-run [pre-starting starting post-starting]
-                   (component-chain promesa-system))
+     promesa-system
+     (promesa-run [pre-starting starting post-starting]
+                  promesa-system
+                  (component-chain promesa-system))
      (reverse-component-chain promesa-system))
   )
 
