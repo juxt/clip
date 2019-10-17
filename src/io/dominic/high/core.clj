@@ -240,31 +240,31 @@
              {:partial-system running-system}
              e)))))))
 
+(defn- stop!
+  [inst stop-code]
+  (cond
+    stop-code
+    (evaluate-pseudo-clojure
+      (-> stop-code
+          (resolver #(= 'this %) (constantly inst)))
+      inst)
+    (isa? (class inst) java.io.Closeable)
+    (.close ^java.io.Closeable inst)))
+
 (defn- stopping
   [rf]
   (fn
     ([running-system system-config id v]
-     (let [inst (get running-system id)
-           component (get system-config id)]
-       (cond
-         (get component :stop)
-         (evaluate-pseudo-clojure
-           (-> (get component :stop)
-               (resolver #(= 'this %) (constantly inst)))
-           inst)
-
-         (some-> (get running-system id)
-                 class
-                 (isa? java.io.Closeable))
-         (.close ^java.io.Closeable inst))
-       (try
-         (rf running-system system-config id v)
-         (catch Throwable e
-           (throw
-             (ex-info
-               "Error while stopping system"
-               {:partial-system running-system}
-               e))))))))
+     (try
+       (stop! (get running-system id)
+              (get-in system-config [id :stop]))
+       (rf running-system system-config id v)
+       (catch Throwable e
+         (throw
+           (ex-info
+             "Error while stopping system"
+             {:partial-system running-system}
+             e)))))))
 
 (defn- run
   ([xf system-config component-chain]
