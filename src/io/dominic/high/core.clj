@@ -86,6 +86,37 @@
     (map (fn [cycle] {:type :cycle :between cycle})
          (cycles sccs g))))
 
+(defn- human-render-dependency-error
+  [dependency-error]
+  (case (:type dependency-error)
+    :missing
+    (str (:from dependency-error) " depends on " (:to dependency-error)
+         ", but " (:to dependency-error) " doesn't exist.")
+
+    :cycle
+    (str "There's a circular dependency between "
+         (apply str (interpose
+                      " -> "
+                      (concat
+                        (reverse (:between dependency-error))
+                        [(first (reverse (:between dependency-error)))]))))
+
+    (pr-str dependency-error)))
+
+(comment
+  (let [bad-system '{:a {:start (high/ref :does-not-exist)}
+                     :b {:start (high/ref :c)}
+                     :c {:start (high/ref :b)}
+                     
+                     :d {:start (high/ref :e)}
+                     :e {:start (high/ref :f)}
+                     :f {:start (high/ref :d)}}]
+    (map
+      (or #_identity human-render-dependency-error)
+      (dependency-errors
+        (sccs (system-dependency-graph bad-system))
+        (system-dependency-graph bad-system)))))
+
 (comment
   (def system
     '{:db {:start (hikari-cp.core/make-datasource
