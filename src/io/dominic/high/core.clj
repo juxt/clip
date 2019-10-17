@@ -124,31 +124,6 @@
     (cycles (sccs g) g))
   )
 
-(defn- ref?
-  [x]
-  (= 'high/ref (and (coll? x) (first x))))
-
-(def ^:private ref-to second)
-
-(defn- resolver
-  [x p? lookup]
-  (clojure.walk/postwalk
-    (fn [x]
-      (if (p? x) (lookup x) x))
-    x))
-
-(defn- resolve-refs
-  [x system-config running-system]
-  (resolver x
-            ref?
-            (fn [ref-list]
-              (let [to (ref-to ref-list)]
-                (cond->> (get running-system to)
-
-                  (get-in system-config [to :resolve])
-                  (evaluate-pseudo-clojure
-                    (get-in system-config [to :resolve])))))))
-
 (defn- namespace-symbol
   "Returns symbol unchanged if it has a namespace, or with clojure.core as it's
   namespace otherwise."
@@ -178,6 +153,31 @@
      (get implicit-target x)
 
      :else (evaluate-pseudo-clojure x))))
+
+(defn- ref?
+  [x]
+  (= 'high/ref (and (coll? x) (first x))))
+
+(def ^:private ref-to second)
+
+(defn- resolver
+  [x p? lookup]
+  (clojure.walk/postwalk
+    (fn [x]
+      (if (p? x) (lookup x) x))
+    x))
+
+(defn- resolve-refs
+  [x system-config running-system]
+  (resolver x
+            ref?
+            (fn [ref-list]
+              (let [to (ref-to ref-list)]
+                (cond->> (get running-system to)
+
+                  (get-in system-config [to :resolve])
+                  (evaluate-pseudo-clojure
+                    (get-in system-config [to :resolve])))))))
 
 (defn- pre-starting
   [rf]
