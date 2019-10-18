@@ -406,3 +406,77 @@
            7 #{6}
            8 #{7 8}}]
     (cycles (sccs g) g)))
+
+(defn- starting-f
+  [system-config]
+  (fn [[k {:keys [start]}]]
+    (fn [rf acc]
+      (rf acc
+          k
+          (evaluate-pseudo-clojure
+            (resolve-refs start system-config acc))))))
+
+(defn- pre-starting-f
+  [system-config]
+  (fn [[k {:keys [pre-start]}]]
+    (fn [rf acc]
+      (when pre-start
+        (evaluate-pseudo-clojure
+          (resolve-refs pre-start system-config acc)))
+      acc)))
+
+(defn- post-starting-f
+  [system-config]
+  (fn [[k {:keys [post-start]}]]
+    (fn [rf acc]
+      (when post-start
+        (evaluate-pseudo-clojure
+          (-> post-start
+              (resolve-refs system-config acc)
+              (resolver #(= 'this %) (constantly (get acc k))))
+          (get acc k)))
+      acc)))
+
+(defn- stopping-f
+  [[k {:keys [stop]}]]
+  (fn [rf acc]
+    (stop! (get acc k) stop)
+    (-> acc
+        (rf (str k "-stop1") :value1)
+        (rf (str k "-stop2") :value2))))
+
+(defn- exec-queue
+  ([q] (exec-queue q {}))
+  ([q init]
+   (reduce (fn [acc f] (f assoc acc)) init q)))
+
+(defn- promesa-exec-queue
+  ([q] (promesa-exec-queue
+         q
+         ((requiring-resolve 'promesa.core/resolved) {})))
+  ([q init]
+   (let [all (requiring-resolve 'promesa.core/all)
+         then (requiring-resolve 'promesa.core/then)]
+     (reduce
+       (fn [*acc f]
+         (-> *acc
+             (pr/then (fn [acc]
+                        (f (fn [acc k v]
+                             (-> (all [acc k v])
+                                 (then #(apply assoc %))))
+                           acc)))))
+       init
+       q))))
+
+(comment
+  (exec-queue
+    (concat (map (starting-f system2) (component-chain system2))
+            (map stopping-f (reverse-component-chain system2))))
+
+  @(promesa-exec-queue
+     (concat
+       (for [f [(pre-starting-f system2)
+                (starting-f system2)]
+             component (component-chain system2)]
+         (f component))
+       (map stopping-f (reverse-component-chain system2)))))
