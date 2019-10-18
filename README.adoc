@@ -10,6 +10,11 @@ It is an alternative to integrant, mount or component.
 Existing dependency injection libraries require boilerplate for defining your components.
 This either comes in the form of multi-methods which must have their namespaces required for side-effects, or the creation of records in order to implement a protocol.
 These extension mechanisms are used to extend existing var calls in libraries.
+Instead of doing that, we can take a reference to a function (e.g. `ring.adapter.jetty/run-jetty`) and call it directly.
+This means that effort to wrap an existing library is minimal, you simply have to specify what to call.
+This also removes the problem of inventing new strategies for tying a keyword back to a namespace as Integrant has to, by directly using the fully qualified symbol which already includes the namespace as required. 
+In addition, normal functions support doc-strings, making for easy documentation.
+Finally, this use of vars means that your library is not coupled to High in any way, yet it's easy to use directly from High.
 
 === Transitions
 
@@ -18,13 +23,21 @@ The most common example is seeding a database.
 Before other components can function (such as a health check) the migration must have run.
 Existing approaches require us to either taint our component's `start` with additional side-effect code (complecting connection with migration) or to create side-effecting components which others must then depend upon.
 
+High by default, provides a :pre and :post phase for start-up, enabling you to run setup before/after starting the component.
+For example, you may need to call `datomic.api/create-database` before connecting to it, and you may want to call `my.app/seed-db` after starting it, but before passing it around.
+
 === Async
 
 Async is a significant part of systems when doing ClojureScript applications.
 Something as simple as reading data from disk or fetching the user from a remote endpoint will cause your entire system to be aware of the callback.
+
 Interceptors have shown that async can be a layered-on concern, rather than being intrinsically present in all consumption of the result.
+High provides multiple "executors" for running actions against your system, providing out of the box support for sync (no async), promesa, and manifold.
+If you need an additional executor, they are fairly simple to write.
 
 === Obvious
 
 Obvious connections between actions are easier to understand than obscure ones.
 Use of inheritance for references or relying on implicit dependencies increases the obscurity of your API.
+Component and Integrant allow you to spread out your references through the use of `using` and `prep-key`.
+Instead High encourages you to make references live in the system, making it always obvious how components connect together.
