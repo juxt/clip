@@ -46,7 +46,7 @@ Instead High encourages you to make references live in the system, making it alw
 
 For initial release, the API surface is very small.
 Over time, it will expand out.
-See [[advanced_usage]] for examples of using the internals of High to gain early access to features.
+See <<advanced_usage>> for examples of using the internals of High to gain early access to features.
 
 === Defining a system configuration
 
@@ -97,3 +97,6 @@ Here's an example of using High in a reloaded workflow.
   (stop)
   (refresh :after 'user/go))
 ----
+
+[[advanced_usage]]
+== Advanced Usage
