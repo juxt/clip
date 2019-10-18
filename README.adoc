@@ -41,3 +41,59 @@ Obvious connections between actions are easier to understand than obscure ones.
 Use of inheritance for references or relying on implicit dependencies increases the obscurity of your API.
 Component and Integrant allow you to spread out your references through the use of `using` and `prep-key`.
 Instead High encourages you to make references live in the system, making it always obvious how components connect together.
+
+== Usage
+
+For initial release, the API surface is very small.
+Over time, it will expand out.
+See [[advanced_usage]] for examples of using the internals of High to gain early access to features.
+
+=== Defining a system configuration
+
+You define a system configuration with data.
+A system is a map from `k` to configuration.
+Note the use of ``` in the example below, this is to prevent execution, you might find it easier to use EDN to define your system configuration.
+
+[source,clojure]
+----
+(def system-config
+  {:db {:pre-start `(d/create-database "datomic:mem://newdb") ;; <1>
+        :start `(d/connect "datomic:mem://newdb") ;; <2>
+        :post-start `seed-conn} ;; <3>
+   :handler {:start `(find-seed-resource (high/ref :db))} ;; <4>
+   :http {:start `(yada/listener (high/ref :handler))
+          :stop '((:close this)) ;; <5>
+          :resolve :server} ;; <6>
+   :foo {:start '(high/ref :http)}})
+----
+<1>: `:pre-start` will be run before `:start` for your component.  Here we use it to run the required `create-database` in datomic.
+<2>: `:start` is run and returns the value that other components will refer to.
+<3>: `:post-start` is run before passing the component to any other components.  Here, we use it to seed the connection.  Because we provided a symbol, it will be resolved and called like so `(seed-conn conn)` where `conn` is the started component.
+<4>: Here we use `(high/ref)` to refer to the `:db` component.  This will be provided positionally to the function.
+<5>: `:stop` has access to the variable `this` to refer to the started component.
+<6>: You can control how a component is referenced by other components.  Here the `:server` key will be passed to other components referencing it (e.g. `:foo`).
+
+=== Reloaded
+
+Here's an example of using High in a reloaded workflow.
+
+[source,clojure]
+----
+(ns user
+  (:require [io.dominic.high.core :as high]
+            [clojure.tools.namespace.repl :refer [refresh]]))
+
+(def system-config {:a {:start 1}})
+(def system nil)
+
+(defn go []
+  (alter-var-root #'system (constantly (high/start system-config))))
+
+(defn stop []
+  (alter-var-root #'system
+    (fn [s] (when s (high/stop system-config s)))))
+
+(defn reset []
+  (stop)
+  (refresh :after 'user/go))
+----
