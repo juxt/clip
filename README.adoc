@@ -5,9 +5,8 @@ It is an alternative to integrant, mount or component.
 
 == Rationale
 
-=== Dependency Injection
+=== System as data
 
-Dependency Injection libraries allow you to configure complex relationships between components in your system.
 Systems may fail during startup, which can leave you in a state where a port is in use, but you have no handle to that partially-started system in order to close it.
 
 [source,clojure]
@@ -20,8 +19,11 @@ Systems may fail during startup, which can leave you in a state where a port is 
 ----
 
 This can lead to re-starting the REPL, which is a major interruption to flow.
+High provides a data model for your system, and will rethrow exceptions with the partially-started components attached in order to allow automatic recovery in the REPL or during tests.
 
-High provides dependency injection, and will rethrow exceptions with the partially started system attached in order to allow automatic recovery in the REPL or during tests.
+You may choose to make your system very granular.
+For example, you may choose to provide each web request handler with it's dependencies directly, rather than passing them via the router.
+In these cases, you will find your system quickly grows large, having your system as data reduces the effort to maintain & understand the relationships between components.
 
 === Boilerplate
 
