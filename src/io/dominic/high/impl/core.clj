@@ -198,30 +198,30 @@
     x))
 
 (defn resolve-refs
-  [x system-config running-system]
+  [x components running-system]
   (resolver x
             ref?
             (fn [ref-list]
               (let [to (ref-to ref-list)]
                 (cond->> (get running-system to)
 
-                  (get-in system-config [to :resolve])
+                  (get-in components [to :resolve])
                   (evaluate-pseudo-clojure
-                    (get-in system-config [to :resolve])))))))
+                    (get-in components [to :resolve])))))))
 
 (defn pre-starting
   [rf]
   (fn
-    ([running-system system-config id value]
-     (let [component (get system-config id)]
+    ([running-system components id value]
+     (let [component (get components id)]
        (when (contains? component :pre-start)
          (evaluate-pseudo-clojure
            (resolve-refs
              (get component :pre-start)
-             system-config
+             components
              running-system))))
      (try
-       (rf running-system system-config id value)
+       (rf running-system components id value)
        (catch Throwable e
          (throw
            (ex-info
@@ -232,15 +232,15 @@
 (defn starting
   [rf]
   (fn
-    ([running-system system-config id _]
-     (let [component (get system-config id)
+    ([running-system components id _]
+     (let [component (get components id)
            resolved-start
            (resolve-refs (get component :start)
-                         system-config
+                         components
                          running-system)]
        (try
          (rf running-system
-             system-config
+             components
              id
              (evaluate-pseudo-clojure resolved-start))
          (catch Throwable e
@@ -253,16 +253,16 @@
 (defn post-starting
   [rf]
   (fn
-    ([running-system system-config id started]
+    ([running-system components id started]
      (try
-       (let [component (get system-config id)]
+       (let [component (get components id)]
          (when (contains? component :post-start)
            (evaluate-pseudo-clojure
              (-> (get component :post-start)
-                 (resolve-refs system-config running-system)
+                 (resolve-refs components running-system)
                  (resolver #(= 'this %) (constantly started)))
              started))
-         (rf running-system system-config id started))
+         (rf running-system components id started))
        (catch Throwable e
          (throw
            (ex-info
@@ -284,11 +284,11 @@
 (defn stopping
   [rf]
   (fn
-    ([running-system system-config id v]
+    ([running-system components id v]
      (try
        (stop! (get running-system id)
-              (get-in system-config [id :stop]))
-       (rf running-system system-config id v)
+              (get-in components [id :stop]))
+       (rf running-system components id v)
        (catch Throwable e
          (throw
            (ex-info
@@ -297,35 +297,35 @@
              e)))))))
 
 (defn run
-  ([xf system-config component-chain]
-   (run xf {} system-config component-chain))
-  ([xf init system-config component-chain]
+  ([xf components component-chain]
+   (run xf {} components component-chain))
+  ([xf init components component-chain]
    (let [f (xf (fn [acc _ id v] (conj acc [id v])))]
      (reduce (fn [init [id component]]
-               (f init system-config id (get init id)))
+               (f init components id (get init id)))
              init
              component-chain))))
 
 (defn promesa-run
-  ([xfs system-config component-chain]
-   (promesa-run xfs system-config ((requiring-resolve 'promesa.core/promise) {}) component-chain))
-  ([xfs system-config init component-chain]
+  ([xfs components component-chain]
+   (promesa-run xfs components ((requiring-resolve 'promesa.core/promise) {}) component-chain))
+  ([xfs components init component-chain]
    (let [promise (requiring-resolve 'promesa.core/promise)
          then (requiring-resolve 'promesa.core/then)
          promesa-wait
          (fn [rf]
-           (fn [acc system-config id value]
-             (-> value (then #(rf acc system-config id %)))))
+           (fn [acc components id value]
+             (-> value (then #(rf acc components id %)))))
          xf (apply comp (interpose promesa-wait xfs))
          f (xf
-             (fn [acc system-config id value]
+             (fn [acc components id value]
                (-> value
                    (then (fn [value]
                            (assoc acc id value))))))]
      (reduce
        (fn [prom-chain [id component]]
          (-> prom-chain
-             (then (fn [acc] (f acc system-config id (get acc id))))))
+             (then (fn [acc] (f acc components id (get acc id))))))
        init
        component-chain))))
 
@@ -407,31 +407,31 @@
     (cycles (sccs g) g)))
 
 (defn starting-f
-  [system-config]
+  [components]
   (fn [[k {:keys [start]}]]
     (fn [rf acc]
       (rf acc
           k
           (evaluate-pseudo-clojure
-            (resolve-refs start system-config acc))))))
+            (resolve-refs start components acc))))))
 
 (defn pre-starting-f
-  [system-config]
+  [components]
   (fn [[k {:keys [pre-start]}]]
     (fn [rf acc]
       (when pre-start
         (evaluate-pseudo-clojure
-          (resolve-refs pre-start system-config acc)))
+          (resolve-refs pre-start components acc)))
       acc)))
 
 (defn post-starting-f
-  [system-config]
+  [components]
   (fn [[k {:keys [post-start]}]]
     (fn [rf acc]
       (when post-start
         (evaluate-pseudo-clojure
           (-> post-start
-              (resolve-refs system-config acc)
+              (resolve-refs components acc)
               (resolver #(= 'this %) (constantly (get acc k))))
           (get acc k)))
       acc)))
