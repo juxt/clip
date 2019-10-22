@@ -116,44 +116,6 @@
         (sccs (system-dependency-graph bad-system))
         (system-dependency-graph bad-system)))))
 
-(comment
-  (def system
-    '{:db {:start (hikari-cp.core/make-datasource
-                   {:jdbc-url
-                    "jdbc:neo4j:bolt://host:port/?username=neo4j,password=xxxx,debug=true"})
-          ;; No need to specify stop, implements java.io.Closeable
-          }
-
-     :db2 {:start
-           (crux.api/start-standalone-node
-             {:kv-backend "crux.kv.rocksdb.RocksKv"
-              :event-log-dir "data/eventlog-1"
-              :db-dir "data/db-dir-1"
-              :backup-dir "checkpoint"})
-           ;; No need to specify stop, implements java.io.Closeable
-           }
-     :yada {:start (yada.yada/listener
-                     (high/ref :routes)
-                     {:port 3000})
-
-            :stop ((:close this))}
-
-     :routes {:start
-              (myapp.routes/routes
-                (high/ref :db)
-                (high/ref :db2)
-                (high/ref :does-not-exist))
-              ;; :stop not required, has no stop lifecycle
-              }
-     })
-
-  (let [g (system-dependency-graph system)]
-    (dependency-errors (sccs g) g))
-
-  (let [g (system-dependency-graph system)]
-    (cycles (sccs g) g))
-  )
-
 (defn namespace-symbol
   "Returns symbol unchanged if it has a namespace, or with clojure.core as it's
   namespace otherwise."
