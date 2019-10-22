@@ -112,7 +112,7 @@ Executors are specified on your system, and can either be a symbol pointing at a
 
 [source,clojure]
 ----
-{:executor io.dominic.high/promesa-exec-queue
+{:executor io.dominic.high.core/exec-promesa
  :components
  {:a {:start (promesa.core/resolved 10)}
   :b {:start (inc (high/ref :a))}}}

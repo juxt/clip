@@ -81,3 +81,11 @@
                                            :stop prn}}
                        :executor impl/promesa-exec-queue}]
     (stop system-config (start system-config))))
+
+(def exec-promesa
+  "Executor which can handle promesa-wrapped async values."
+  impl/promesa-exec-queue)
+
+(def exec-sync
+  "Executor which runs sync between calls."
+  impl/exec-queue)
