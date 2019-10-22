@@ -5,6 +5,24 @@ It is an alternative to integrant, mount or component.
 
 == Rationale
 
+== Dependency Injection
+
+Dependency Injection libraries allow you to configure complex relationships between components in your system.
+Systems may fail during startup, which can leave you in a state where a port is in use, but you have no handle to that partially-started system in order to close it.
+
+[source,clojure]
+----
+(let [db (get-db)]
+      http (start-http-server db)
+      ;; What happens if make-queue-listener throws an exception?
+      queue-listener (make-queue-listener)]
+  …)
+----
+
+This can lead to re-starting the REPL, which is a major interruption to flow.
+
+High provides dependency injection, and will rethrow exceptions with the partially started system attached in order to allow automatic recovery in the REPL or during tests.
+
 === Boilerplate
 
 Existing dependency injection libraries require boilerplate for defining your components.
