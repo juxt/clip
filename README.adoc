@@ -49,6 +49,9 @@ Existing approaches require us to either taint our component's `start` with addi
 High by default, provides a :pre and :post phase for start-up, enabling you to run setup before/after starting the component.
 For example, you may need to call `datomic.api/create-database` before connecting to it, and you may want to call `my.app/seed-db` after starting it, but before passing it around.
 
+High is also simple, it separates out running many actions on your system.
+This allows you to define custom phases for components, if you need them.
+
 === Async
 
 Async is a significant part of systems when doing ClojureScript applications.
