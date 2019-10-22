@@ -75,14 +75,15 @@ Note the use of ``` in the example below, this is to prevent execution, you migh
 [source,clojure]
 ----
 (def system-config
-  {:db {:pre-start `(d/create-database "datomic:mem://newdb") ;; <1>
-        :start `(d/connect "datomic:mem://newdb") ;; <2>
-        :post-start `seed-conn} ;; <3>
-   :handler {:start `(find-seed-resource (high/ref :db))} ;; <4>
-   :http {:start `(yada/listener (high/ref :handler))
-          :stop '((:close this)) ;; <5>
-          :resolve :server} ;; <6>
-   :foo {:start '(high/ref :http)}})
+  {:components
+   {:db {:pre-start `(d/create-database "datomic:mem://newdb") ;; <1>
+         :start `(d/connect "datomic:mem://newdb") ;; <2>
+         :post-start `seed-conn} ;; <3>
+    :handler {:start `(find-seed-resource (high/ref :db))} ;; <4>
+    :http {:start `(yada/listener (high/ref :handler))
+           :stop '((:close this)) ;; <5>
+           :resolve :server} ;; <6>
+    :foo {:start '(high/ref :http)}}})
 ----
 <1> `:pre-start` will be run before `:start` for your component.  Here we use it to run the required `create-database` in datomic.
 <2> `:start` is run and returns the value that other components will refer to.
