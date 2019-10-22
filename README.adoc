@@ -92,6 +92,29 @@ Note the use of ``` in the example below, this is to prevent execution, you migh
 <5> `:stop` has access to the variable `this` to refer to the started component.
 <6> You can control how a component is referenced by other components.  Here the `:server` key will be passed to other components referencing it (e.g. `:foo`).
 
+=== Async
+
+In High, async is achieved by using alternative executors.
+Out of the box support is provided for link:https://github.com/funcool/promesa[promesa], with other popular libraries to follow.
+
+Executors are specified on your system, and can either be a symbol pointing at a executor or a function. 
+
+.Async Example
+====
+
+[source,clojure]
+----
+{:executor io.dominic.high/promesa-exec-queue
+ :components
+ {:a {:start (promesa.core/resolved 10)}
+  :b {:start (inc (high/ref :a))}}}
+----
+
+Note that `:b` does not need to be aware that `:a` returns an async value.
+It will be called at the appropriate time with the resolved value.
+
+====
+
 === Reloaded
 
 Here's an example of using High in a reloaded workflow.
