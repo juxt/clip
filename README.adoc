@@ -5,7 +5,7 @@ It is an alternative to integrant, mount or component.
 
 == Rationale
 
-== Dependency Injection
+=== Dependency Injection
 
 Dependency Injection libraries allow you to configure complex relationships between components in your system.
 Systems may fail during startup, which can leave you in a state where a port is in use, but you have no handle to that partially-started system in order to close it.
