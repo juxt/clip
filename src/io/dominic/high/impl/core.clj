@@ -124,6 +124,15 @@
     sym
     (symbol "clojure.core" (name sym))))
 
+(defn symbol->f
+  [sym]
+  (if (= \. (first (str sym)))
+    #(clojure.lang.Reflector/invokeInstanceMethod
+       %1
+       (subs (str sym) 1)
+       (into-array Object %&))
+    (requiring-resolve (namespace-symbol sym))))
+
 (defn evaluate-pseudo-clojure
   ([x]
    (cond
@@ -131,8 +140,16 @@
      ((requiring-resolve (namespace-symbol x)))
      (sequential? x)
      (apply (if (symbol? (first x))
-              (requiring-resolve (namespace-symbol (first x)))
-              (evaluate-pseudo-clojure (first x)))
+              (if-let [f (symbol->f (first x))]
+                f
+                (throw
+                  (ex-info
+                    (str "Got null for function looking up symbol: "
+                         (first x))
+                    {})))
+              (if-let [f (evaluate-pseudo-clojure (first x))]
+                f
+                (throw (ex-info (str "Got null for function while evaluating form " x) {}))))
             (map evaluate-pseudo-clojure (rest x)))
      :else x))
 
