@@ -138,6 +138,8 @@
    (cond
      (symbol? x)
      ((requiring-resolve (namespace-symbol x)))
+     (vector? x)
+     (mapv evaluate-pseudo-clojure x)
      (sequential? x)
      (apply (if (symbol? (first x))
               (if-let [f (symbol->f (first x))]
