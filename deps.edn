@@ -3,4 +3,5 @@
  {:dev
   {:extra-deps
    {funcool/promesa {:mvn/version "4.0.2"}
-    manifold {:mvn/version "0.1.8"}}}}}
+    manifold {:mvn/version "0.1.8"}
+    org.clojure/tools.namespace {:mvn/version "0.3.1"}}}}}
