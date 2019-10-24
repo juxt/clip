@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+output="high.jar"
+
+clojure -A:garamond -p
+clojure -A:pack mach.pack.alpha.skinny --no-libs --project-path high.jar
+mvn deploy:deploy-file "-Dfile=high.jar" -DrepositoryId=clojars -Durl=https://clojars.org/repo -DpomFile=pom.xml

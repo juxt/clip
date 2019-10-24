@@ -7,4 +7,13 @@
     manifold {:mvn/version "0.1.8"}
     yada {:mvn/version "1.2.15.1"}
     com.datomic/datomic-free {:mvn/version "0.9.5697"}
-    org.clojure/tools.namespace {:mvn/version "0.3.1"}}}}}
+    org.clojure/tools.namespace {:mvn/version "0.3.1"}}}
+  :pack
+  {:extra-deps {pack/pack.alpha
+                {:git/url "https://github.com/juxt/pack.alpha.git"
+                 :sha "2769a6224bfb938e777906ea311b3daf7d2220f5"}}
+   :main-opts ["-m"]}
+
+  :garamond
+  {:main-opts ["-m" "garamond.main"]
+   :extra-deps {com.workframe/garamond {:mvn/version "0.4.0"}}}}}

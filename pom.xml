@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.dominic</groupId>
+  <artifactId>high</artifactId>
+  <version>0.0.0</version>
+  <name>high</name>
+  <dependencies/>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+  </build>
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <url>https://repo.clojars.org/</url>
+    </repository>
+  </repositories>
+<scm>
+    <url/>
+    <tag>44afb7fd6cedc60d407fd2d8b5bf58c5d1352d2e</tag>
+    <connection>scm:git:git@github.com:SevereOverfl0w/high.git</connection>
+    <developerConnection>scm:git:git@github.com:SevereOverfl0w/high.git</developerConnection>
+  </scm>
+</project>
