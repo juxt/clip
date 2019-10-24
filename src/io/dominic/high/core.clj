@@ -46,8 +46,7 @@
             f [(impl/pre-starting-f components)
                (impl/starting-f components)
                (impl/post-starting-f components)]]
-        (f component))
-      {})))
+        (f component)))))
 
 (defn stop
   "Takes a system config to stop.
