@@ -298,7 +298,16 @@
 (defn exec-queue
   ([q] (exec-queue q {}))
   ([q init]
-   (reduce (fn [acc f] (f assoc acc)) init q)))
+   (reduce
+     (fn [acc f]
+       (try
+         (f assoc acc)
+         (catch Throwable t
+           (throw (ex-info "Failure while executing on system"
+                           {:io.dominic.high.core/type :thrown
+                            :io.dominic.high.core/system acc}
+                           t)))))
+     init q)))
 
 (defn promesa-exec-queue
   ([q] (promesa-exec-queue
@@ -306,15 +315,26 @@
          ((requiring-resolve 'promesa.core/resolved) {})))
   ([q init]
    (let [all (requiring-resolve 'promesa.core/all)
-         then (requiring-resolve 'promesa.core/then)]
+         then (requiring-resolve 'promesa.core/then)
+         catch (requiring-resolve 'promesa.core/catch)]
      (reduce
        (fn [*acc f]
          (-> *acc
              (then (fn [acc]
-                     (f (fn [acc k v]
-                          (-> (all [acc k v])
-                              (then #(apply assoc %))))
-                        acc)))))
+                     (try
+                       (f (fn [acc k v]
+                            (-> (all [acc k v])
+                                (then #(apply assoc %))
+                                (catch (fn [e]
+                                         (throw (ex-info "Failure while executing on system" 
+                                                         {:io.dominic.high.core/type :thrown
+                                                          :io.dominic.high.core/system acc
+                                                          :io.dominic.high.core/unapplied-v v}))))))
+                          acc)
+                       (catch Throwable t
+                         (throw (ex-info "Failure while executing on system" 
+                                         {:io.dominic.high.core/type :thrown
+                                          :io.dominic.high.core/system acc}))))))))
        init
        q))))
 
