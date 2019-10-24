@@ -1,5 +1,6 @@
 (ns io.dominic.high.impl.core
-  (:require [clojure.set :as set]))
+  (:require [clojure.set :as set]
+            [clojure.walk :as walk]))
 
 (defn sccs
   "Returns a topologically sorted list of strongly connected components.
@@ -173,7 +174,7 @@
 
 (defn resolver
   [x p? lookup]
-  (clojure.walk/postwalk
+  (walk/postwalk
     (fn [x]
       (if (p? x) (lookup x) x))
     x))
