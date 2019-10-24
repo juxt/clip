@@ -1,7 +1,10 @@
 {:paths ["src"]
  :aliases
  {:dev
-  {:extra-deps
+  {:extra-paths ["dev"]
+   :extra-deps
    {funcool/promesa {:mvn/version "4.0.2"}
     manifold {:mvn/version "0.1.8"}
+    yada {:mvn/version "1.2.15.1"}
+    com.datomic/datomic-free {:mvn/version "0.9.5697"}
     org.clojure/tools.namespace {:mvn/version "0.3.1"}}}}}
