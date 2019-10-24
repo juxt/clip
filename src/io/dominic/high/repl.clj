@@ -22,8 +22,25 @@
 
 (defn- start-system
   [system-config]
-  (vary-meta (high/start system-config)
-             merge {::system-config system-config}))
+  (vary-meta
+    (try
+      (high/start system-config)
+      (catch Throwable t
+        (if-let [system (::high/system (ex-data t))]
+          ;; Partially started system found, we should call stop on it to clean
+          ;; up.
+          (do
+            (try
+              (high/stop system-config system)
+              (catch Throwable stop-t
+                (throw
+                  (ex-info
+                    "Exception thrown while starting system.  Exception also thrown while stopping system."
+                    {:stop-exception stop-t}
+                    t))))
+            (throw (ex-cause t)))
+          (throw t))))
+    merge {::system-config system-config}))
 
 (defn set-init!
   "Set the initializer to init-fn.  Should be a function which takes no
