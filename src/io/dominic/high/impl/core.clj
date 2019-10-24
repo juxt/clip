@@ -329,12 +329,14 @@
                                          (throw (ex-info "Failure while executing on system" 
                                                          {:io.dominic.high.core/type :thrown
                                                           :io.dominic.high.core/system acc
-                                                          :io.dominic.high.core/unapplied-v v}))))))
+                                                          :io.dominic.high.core/unapplied-v v}
+                                                         e))))))
                           acc)
                        (catch Throwable t
                          (throw (ex-info "Failure while executing on system" 
                                          {:io.dominic.high.core/type :thrown
-                                          :io.dominic.high.core/system acc}))))))))
+                                          :io.dominic.high.core/system acc}
+                                         t))))))))
        init
        q))))
 
