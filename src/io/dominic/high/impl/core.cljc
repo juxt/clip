@@ -158,7 +158,9 @@
                                 (str "Got null for function looking up symbol: "
                                      (first x))
                                 {})))
-                          (if-let [f (evaluate-pseudo-clojure (first x))]
+                          (if-let [f (if (fn? (first x))
+                                       (first x)
+                                       (evaluate-pseudo-clojure (first x)))]
                             f
                             (throw (ex-info (str "Got null for function while evaluating form " x) {})))))
             (map evaluate-pseudo-clojure (rest x)))
