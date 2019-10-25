@@ -61,14 +61,18 @@
                (get-in g [(first %) (first %)]))
           sccs))
 
+(defn ref?
+  [x]
+  (= 'high/ref (and (coll? x) (first x))))
+
+(def ^:private ref-to second)
+
 (defn system-dependency-graph
   [system]
-  (let [ref? #(= 'high/ref (and (coll? %) (first %)))
-        ref-to second]
-    (into {}
-          (map (fn [[k v]]
-                 [k (set (map ref-to (filter ref? (tree-seq coll? seq (:start v)))))])
-               system))))
+  (into {}
+        (map (fn [[k v]]
+               [k (set (map ref-to (filter ref? (tree-seq coll? seq (:start v)))))])
+             system)))
 
 (defn dependency-errors
   [sccs g]
@@ -173,12 +177,6 @@
      (get implicit-target x)
 
      :else (evaluate-pseudo-clojure x))))
-
-(defn ref?
-  [x]
-  (= 'high/ref (and (coll? x) (first x))))
-
-(def ^:private ref-to second)
 
 (defn resolver
   [x p? lookup]
