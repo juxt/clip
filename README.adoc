@@ -167,3 +167,25 @@ You must use `list` to create a list-form.
 ----
 
 ====
+
+CAUTION: The following macro is extremely experimental, feed-back on use is welcome.
+
+You can also bring in the `deval` macro.
+This macro will convert lists of code it finds into non-evaluated lists, which can later be interpreted by High.
+
+.Deval Usage
+====
+
+[source,clojure]
+----
+(ns frontend.core
+  (require '[io.dominic.high.core :as high :include-macros true]))
+
+(def system-config
+  (high/deval
+    {:components
+      {:foo {:start 200}
+       :bar {:start (inc (high/ref :foo))}}}))
+----
+
+====

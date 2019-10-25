@@ -1,6 +1,7 @@
 (ns io.dominic.high.core
   (:refer-clojure :exclude [ref])
-  (:require [io.dominic.high.impl.core :as impl]))
+  (:require [io.dominic.high.impl.core :as impl]
+            [clojure.walk :as walk]))
 
 (defn- safely-derive-parts
   [components init]
@@ -91,3 +92,14 @@
 (defn ref
   [ref-to]
   (list 'high/ref ref-to))
+
+(defmacro deval
+  "EXPERIMENTAL.  Defers evaluation of lists.  Useful for defining component
+  start/stop/etc. functions."
+  [body]
+  (walk/postwalk
+    (fn [x]
+      (if (list? x)
+        (cons `list x)
+        x))
+    body))
