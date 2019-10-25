@@ -139,11 +139,28 @@ It will be called at the appropriate time with the resolved value.
 
 === Reloaded
 
-Here's an example of using High in a reloaded workflow.
+High provides a namespace for easily setting up a reloaded workflow.
+You will need to add a dependency on link:https://github.com/clojure/tools.namespace[tools.namespace] to your project.
+
+You should call `set-init!` with a function which will return your system-config.
+Usually you will have such a function defined in another namespace that takes a "profile" or "config" in order to be parameterized to development or production.
+
 
 [source,clojure]
 ----
-(ns user
+(ns dev
+  (:require
+    [app.system]
+    [io.dominic.high.repl :refer [start stop reset set-init! system]]))
+
+(set-init! #(app.system/system-config :dev))
+----
+
+Alternatively you can roll your own Reloaded workflow quite easily, but you will miss out on convenient features in the built-in one like auto-cleanup.
+
+[source,clojure]
+----
+(ns dev
   (:require [io.dominic.high.core :as high]
             [clojure.tools.namespace.repl :refer [refresh]]))
 
