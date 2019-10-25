@@ -93,13 +93,19 @@
   [ref-to]
   (list 'high/ref ref-to))
 
+(defn deval-body
+  "EXPERIMENTAL.  Takes a body of code and defers evaluation of lists."
+  [body]
+  (walk/postwalk
+    (fn [x]
+      (if (and (list? x)
+               (not= (first x) 'high/ref))
+        (cons `list x)
+        x))
+    body))
+
 (defmacro deval
   "EXPERIMENTAL.  Defers evaluation of lists.  Useful for defining component
   start/stop/etc. functions."
   [body]
-  (walk/postwalk
-    (fn [x]
-      (if (list? x)
-        (cons `list x)
-        x))
-    body))
+  (deval-body body))
