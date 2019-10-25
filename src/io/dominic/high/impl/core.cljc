@@ -138,6 +138,14 @@
           (into-array Object %&))
        (requiring-resolve (namespace-symbol sym)))))
 
+(declare evaluate-pseudo-clojure)
+
+(defn evaluate-nested-clojure
+  [x]
+  (if (fn? x)
+    x
+    (evaluate-pseudo-clojure x)))
+
 (defn evaluate-pseudo-clojure
   ([x]
    (cond
@@ -158,12 +166,10 @@
                                 (str "Got null for function looking up symbol: "
                                      (first x))
                                 {})))
-                          (if-let [f (if (fn? (first x))
-                                       (first x)
-                                       (evaluate-pseudo-clojure (first x)))]
+                          (if-let [f (evaluate-nested-clojure (first x))]
                             f
                             (throw (ex-info (str "Got null for function while evaluating form " x) {})))))
-            (map evaluate-pseudo-clojure (rest x)))
+            (map evaluate-nested-clojure (rest x)))
      :else x))
 
   ([x implicit-target]
