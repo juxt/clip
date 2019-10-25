@@ -14,7 +14,14 @@
          (high/start
            {:components
             {nil {:start 1}
-             :bar {:start '(inc (high/ref nil))}}}))))
+             :bar {:start '(inc (high/ref nil))}}})))
+
+  (is (= {:foo 1 :bar 3}
+         (high/start
+           {:components
+            {:foo {:start 1
+                   :resolve inc}
+             :bar {:start '(inc (high/ref :foo))}}}))))
 
 (deftest start-graph-ex
   (is (thrown? Throwable
