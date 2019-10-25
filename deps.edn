@@ -16,4 +16,9 @@
 
   :garamond
   {:main-opts ["-m" "garamond.main"]
-   :extra-deps {com.workframe/garamond {:mvn/version "0.4.0"}}}}}
+   :extra-deps {com.workframe/garamond {:mvn/version "0.4.0"}}}
+  
+  :cljs-repl
+  {:extra-deps
+   {org.clojure/clojurescript {:mvn/version "1.10.520"}}
+   :main-opts ["-m" "cljs.main"]}}}

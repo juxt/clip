@@ -1,4 +1,5 @@
 (ns io.dominic.high.core
+  (:refer-clojure :exclude [ref])
   (:require [io.dominic.high.impl.core :as impl]))
 
 (defn- safely-derive-parts
@@ -21,9 +22,11 @@
 
 (defn- ->executor
   [executor]
-  (if (fn? executor)
-    executor
-    (requiring-resolve executor)))
+  #?(:cljs executor
+     :default
+     (if (fn? executor)
+       executor
+       (requiring-resolve executor))))
 
 (defn start
   "Takes a system config to start.  Returns a running system where the keys map
@@ -81,10 +84,10 @@
                        :executor impl/promesa-exec-queue}]
     (stop system-config (start system-config))))
 
-(def exec-promesa
-  "Executor which can handle promesa-wrapped async values."
-  impl/promesa-exec-queue)
-
 (def exec-sync
   "Executor which runs sync between calls."
   impl/exec-queue)
+
+(defn ref
+  [ref-to]
+  (list 'high/ref ref-to))

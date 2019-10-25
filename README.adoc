@@ -114,7 +114,7 @@ Executors are specified on your system, and can either be a symbol pointing at a
 
 [source,clojure]
 ----
-{:executor io.dominic.high.core/exec-promesa
+{:executor io.dominic.high.promesa/exec
  :components
  {:a {:start (promesa.core/resolved 10)}
   :b {:start (inc (high/ref :a))}}}
@@ -149,6 +149,28 @@ Here's an example of using High in a reloaded workflow.
   (stop)
   (refresh :after 'user/go))
 ----
+
+=== ClojureScript
+
+ClojureScript has limitations with taking code-forms as data.
+This will continue to be an active research topic, but until resolved the usage is still reasonably concise.
+You must use `list` to create a list-form.
+
+.ClojureScript Usage
+====
+
+[source,clojure]
+----
+(ns frontend.core
+  (:require [io.dominic.high.core :as high]))
+
+(def system-config
+  {:components
+    {:foo {:start 200}
+     :bar {:start (list inc (high/ref :foo))}}})
+----
+
+====
 
 [[advanced_usage]]
 == Advanced Usage

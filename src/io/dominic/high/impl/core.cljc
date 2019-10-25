@@ -124,41 +124,50 @@
     sym
     (symbol "clojure.core" (name sym))))
 
-(defn symbol->f
-  [sym]
-  (if (= \. (first (str sym)))
-    #(clojure.lang.Reflector/invokeInstanceMethod
-       %1
-       (subs (str sym) 1)
-       (into-array Object %&))
-    (requiring-resolve (namespace-symbol sym))))
+#?(:clj
+   (defn symbol->f
+     [sym]
+     (if (= \. (first (str sym)))
+       #(clojure.lang.Reflector/invokeInstanceMethod
+          %1
+          (subs (str sym) 1)
+          (into-array Object %&))
+       (requiring-resolve (namespace-symbol sym)))))
 
 (defn evaluate-pseudo-clojure
   ([x]
    (cond
-     (symbol? x)
-     ((requiring-resolve (namespace-symbol x)))
+     #?@(:clj
+          [(symbol? x)
+           ((requiring-resolve (namespace-symbol x)))])
+     (fn? x)
+     (x)
      (vector? x)
      (mapv evaluate-pseudo-clojure x)
      (sequential? x)
-     (apply (if (symbol? (first x))
-              (if-let [f (symbol->f (first x))]
-                f
-                (throw
-                  (ex-info
-                    (str "Got null for function looking up symbol: "
-                         (first x))
-                    {})))
-              (if-let [f (evaluate-pseudo-clojure (first x))]
-                f
-                (throw (ex-info (str "Got null for function while evaluating form " x) {}))))
+     (apply #?(:cljs (first x)
+               :default (if (symbol? (first x))
+                          (if-let [f (symbol->f (first x))]
+                            f
+                            (throw
+                              (ex-info
+                                (str "Got null for function looking up symbol: "
+                                     (first x))
+                                {})))
+                          (if-let [f (evaluate-pseudo-clojure (first x))]
+                            f
+                            (throw (ex-info (str "Got null for function while evaluating form " x) {})))))
             (map evaluate-pseudo-clojure (rest x)))
      :else x))
 
   ([x implicit-target]
    (cond
-     (symbol? x)
-     ((requiring-resolve (namespace-symbol x)) implicit-target)
+     #?@(:clj
+          [(symbol? x)
+           ((requiring-resolve (namespace-symbol x)) implicit-target)])
+
+     (fn? x)
+     (x implicit-target)
 
      (keyword? x)
      (get implicit-target x)
@@ -198,8 +207,9 @@
       (-> stop-code
           (resolver #(= 'this %) (constantly inst)))
       inst)
-    (isa? (class inst) java.io.Closeable)
-    (.close ^java.io.Closeable inst)))
+    #?@(:clj
+         [(isa? (class inst) java.io.Closeable)
+          (.close ^java.io.Closeable inst)])))
 
 (defn component-chain
   [system]
@@ -302,53 +312,14 @@
      (fn [acc f]
        (try
          (f assoc acc)
-         (catch Throwable t
+         (catch #?(:clj Throwable :cljs js/Error) t
            (throw (ex-info "Failure while executing on system"
                            {:io.dominic.high.core/type :thrown
                             :io.dominic.high.core/system acc}
                            t)))))
      init q)))
 
-(defn promesa-exec-queue
-  ([q] (promesa-exec-queue
-         q
-         ((requiring-resolve 'promesa.core/resolved) {})))
-  ([q init]
-   (let [all (requiring-resolve 'promesa.core/all)
-         then (requiring-resolve 'promesa.core/then)
-         catch (requiring-resolve 'promesa.core/catch)]
-     (reduce
-       (fn [*acc f]
-         (-> *acc
-             (then (fn [acc]
-                     (try
-                       (f (fn [acc k v]
-                            (-> (all [acc k v])
-                                (then #(apply assoc %))
-                                (catch (fn [e]
-                                         (throw (ex-info "Failure while executing on system" 
-                                                         {:io.dominic.high.core/type :thrown
-                                                          :io.dominic.high.core/system acc
-                                                          :io.dominic.high.core/unapplied-v v}
-                                                         e))))))
-                          acc)
-                       (catch Throwable t
-                         (throw (ex-info "Failure while executing on system" 
-                                         {:io.dominic.high.core/type :thrown
-                                          :io.dominic.high.core/system acc}
-                                         t))))))))
-       init
-       q))))
-
 (comment
   (exec-queue
     (concat (map (starting-f system2) (component-chain system2))
-            (map stopping-f (reverse-component-chain system2))))
-
-  @(promesa-exec-queue
-     (concat
-       (for [f [(pre-starting-f system2)
-                (starting-f system2)]
-             component (component-chain system2)]
-         (f component))
-       (map stopping-f (reverse-component-chain system2)))))
+            (map stopping-f (reverse-component-chain system2)))))
