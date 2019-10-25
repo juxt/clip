@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.dominic</groupId>
   <artifactId>high</artifactId>
-  <version>0.0.0</version>
+  <version>0.1.0</version>
   <name>high</name>
   <dependencies/>
   <build>
@@ -17,7 +17,7 @@
   </repositories>
 <scm>
     <url/>
-    <tag>44afb7fd6cedc60d407fd2d8b5bf58c5d1352d2e</tag>
+    <tag>23a763f97fb06fcc1e3db254aa9fd69b01cb755e</tag>
     <connection>scm:git:git@github.com:SevereOverfl0w/high.git</connection>
     <developerConnection>scm:git:git@github.com:SevereOverfl0w/high.git</developerConnection>
   </scm>
