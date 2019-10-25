@@ -1,3 +1,4 @@
 .cpcache
 .*-port
 high.jar
+.clj-kondo/.cache/
