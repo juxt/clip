@@ -72,10 +72,6 @@ Instead High encourages you to make references live in the system, making it alw
 
 == Usage
 
-For initial release, the API surface is very small.
-Over time, it will expand out.
-See <<advanced_usage>> for examples of using the internals of High to gain early access to features.
-
 === Defining a system configuration
 
 You define a system configuration with data.
@@ -171,6 +167,3 @@ You must use `list` to create a list-form.
 ----
 
 ====
-
-[[advanced_usage]]
-== Advanced Usage
