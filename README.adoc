@@ -113,8 +113,8 @@ Executors are specified on your system, and can either be a symbol pointing at a
 ----
 {:executor io.dominic.high.promesa/exec
  :components
- {:a {:start (promesa.core/resolved 10)}
-  :b {:start (inc (high/ref :a))}}}
+ {:a {:start `(promesa.core/resolved 10)}
+  :b {:start `(inc (high/ref :a))}}}
 ----
 
 Note that `:b` does not need to be aware that `:a` returns an async value.
@@ -132,7 +132,7 @@ It will be called at the appropriate time with the resolved value.
 {:executor io.dominic.high.manifold/exec
  :components
  {:a {:start `(d/chain 10)}
-  :b {:start (inc (high/ref :a))}}}
+  :b {:start `(inc (high/ref :a))}}}
 ----
 
 ====
