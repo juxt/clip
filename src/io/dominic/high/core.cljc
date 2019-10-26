@@ -109,3 +109,44 @@
   start/stop/etc. functions."
   [body]
   (deval-body body))
+
+#?(:clj
+   (defmacro with-deps
+     "Takes bindings and a body, like `fn`. The first binding must be to deps, and
+     be a destructuring of the deps you want.
+
+     ```
+     (with-deps [{:keys [foo bar]}]
+     (+ foo bar))
+     ```
+
+     ```
+     (with-deps [{foo :foo}]
+     (str foo))
+     ```
+
+     Remaining bindings will be arguments to the generated function.  For example,
+     :stop will provide you with the running instance to stop.
+
+     ```
+     (with-deps [{:keys [foo]} this]
+     (.close this foo))
+     ```"
+     [[dep-binding & args] & body]
+     (assert
+       (map? dep-binding)
+       "Please use a map to destructure the deps (known as associative destructuring)")
+     (let [deps (mapv last
+                      (filter
+                        (fn [x]
+                          (and (seq? x)
+                               (= 'clojure.core/get (first x))))
+                        (map second (partition 2 (destructure [dep-binding nil])))))]
+       `(vary-meta
+          ^::fix (fn self# ~(or args [])
+                   (let [~dep-binding (select-keys impl/*running-system*
+                                                   ~deps)]
+                     ~@body))
+          assoc
+          ::deps
+          ~deps))))

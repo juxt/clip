@@ -71,7 +71,14 @@
   [system]
   (into {}
         (map (fn [[k v]]
-               [k (set (map ref-to (filter ref? (tree-seq coll? seq (:start v)))))])
+               [k (set
+                    (concat
+                      (->> (:start v)
+                           (tree-seq coll? seq)
+                           (filter ref?)
+                           (map ref-to))
+                      (:io.dominic.high.core/deps
+                        (meta (:start v)))))])
              system)))
 
 (defn dependency-errors
@@ -193,17 +200,34 @@
       (if (p? x) (lookup x) x))
     x))
 
+(def ^:dynamic *running-system*)
+
 (defn resolve-refs
   [x components running-system]
-  (resolver x
-            ref?
-            (fn [ref-list]
-              (let [to (ref-to ref-list)]
-                (cond->> (get running-system to)
+  (walk/postwalk
+    (fn [x]
+      (cond
+        (ref? x)
+        (let [to (ref-to x)]
+          (cond->> (get running-system to)
 
-                  (get-in components [to :resolve])
-                  (evaluate-pseudo-clojure
-                    (get-in components [to :resolve])))))))
+            (get-in components [to :resolve])
+            (evaluate-pseudo-clojure
+              (get-in components [to :resolve]))))
+
+        #_#_(:io.dominic.high.core/deps (meta x))
+        (vary-meta x
+                   assoc
+                   :io.dominic.high.core/resolved-deps
+                   (zipmap (:io.dominic.high.core/deps (meta x))
+                           ;; TODO: :resolve
+                           (map
+                             #(get running-system %)
+                             (:io.dominic.high.core/deps (meta x)))))
+
+        :else
+        x))
+    x))
 
 (defn stop!
   [inst stop-code]
@@ -279,16 +303,18 @@
     (fn [rf acc]
       (rf acc
           k
-          (evaluate-pseudo-clojure
-            (resolve-refs start components acc))))))
+          (binding [*running-system* acc]
+            (evaluate-pseudo-clojure
+              (resolve-refs start components acc)))))))
 
 (defn pre-starting-f
   [components]
   (fn [[k {:keys [pre-start]}]]
     (fn [rf acc]
       (when pre-start
-        (evaluate-pseudo-clojure
-          (resolve-refs pre-start components acc)))
+        (binding [*running-system* acc]
+          (evaluate-pseudo-clojure
+            (resolve-refs pre-start components acc))))
       acc)))
 
 (defn post-starting-f
@@ -296,11 +322,12 @@
   (fn [[k {:keys [post-start]}]]
     (fn [rf acc]
       (when post-start
-        (evaluate-pseudo-clojure
-          (-> post-start
-              (resolve-refs components acc)
-              (resolver #(= 'this %) (constantly (get acc k))))
-          (get acc k)))
+        (binding [*running-system* acc]
+          (evaluate-pseudo-clojure
+            (-> post-start
+                (resolve-refs components acc)
+                (resolver #(= 'this %) (constantly (get acc k))))
+            (get acc k))))
       acc)))
 
 (defn stopping-f

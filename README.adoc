@@ -201,6 +201,34 @@ You must use `list` to create a list-form.
 
 ====
 
+CAUTION: The following macro is experimental, feedback on use is welcome. However, of the following experimental options it is currently the forerunner.
+
+There is a macro called `with-deps` that allows you to write a code-form and bind the dependencies required.
+This is useful when using High from a code (rather than data) context.
+It's also particularly useful in ClojureScript where symbols cannot be resolved back to functions.
+
+`with-deps` takes `bindings` and a `body`, much like `fn`.
+The first of the bindings must be to the deps you want.
+You _must_ use link:https://clojure.org/guides/destructuring#_associative_destructuring[associative destructuring].
+
+.`with-deps` Usage
+====
+
+[source,clojure]
+----
+(ns frontend.core
+  (:require [io.dominic.high.core :as high :include-macros true]))
+
+(def system-config
+  {:components
+    {:foo {:start 200}
+     :bar {:start 300}
+     :baz {:start (high/with-deps [{:keys [foo bar]}]
+                    (+ foo bar))}}})
+----
+
+====
+
 CAUTION: The following macro is extremely experimental, feed-back on use is welcome.
 
 You can also bring in the `deval` macro.
@@ -242,4 +270,3 @@ Alternatively, you can prefix code-forms with `#high/%` in order to defer their 
 ----
 
 ====
-

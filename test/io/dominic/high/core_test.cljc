@@ -21,7 +21,17 @@
            {:components
             {:foo {:start 1
                    :resolve inc}
-             :bar {:start '(inc (high/ref :foo))}}}))))
+             :bar {:start '(inc (high/ref :foo))}}})))
+  
+  (is (= {:foo 1 :bar 3 :baz 4}
+         (high/start
+           {:components
+            {:foo {:start 1
+                   :resolve inc}
+             :bar {:start '(inc (high/ref :foo))}
+             :baz {:start (high/with-deps
+                            [{:keys [foo bar]}]
+                            (+ foo bar))}}}))))
 
 (deftest start-graph-ex
   (is (thrown? Throwable
