@@ -39,6 +39,9 @@ You may choose to make your system very granular.
 For example, you may choose to provide each web request handler with it's dependencies directly, rather than passing them via the router.
 In these cases, you will find your system quickly grows large, having your system as data reduces the effort to maintain & understand the relationships between components.
 
+EDN is a natural way to express data in Clojure.
+A data-driven system should naturally work with EDN without any magic.
+
 === Boilerplate
 
 Existing dependency injection libraries require boilerplate for defining your components.
