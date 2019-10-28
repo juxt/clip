@@ -265,28 +265,9 @@
             :stop (println "num-->" this)}
       :b {:start (inc (high/ref :num))
           :pre-start (println "bbbb")
-          :post-start  (println "postpostpost" this)}})
-
-  (run starting
-       system2
-       (component-chain system2))
-
-  (run
-    stopping
-    (run (comp pre-starting starting post-starting)
-         system2
-         (component-chain system2))
-    system2
-    (reverse-component-chain system2)))
+          :post-start  (println "postpostpost" this)}}))
 
 (comment
-  (cycles {:a #{:b}
-           :b #{:a}
-           :c #{:b :a}})
-  (cycles (sccs {:a #{:b}
-                 :b #{:a}
-                 :c #{:b :a}}))
-
   (let [g {1 #{2}
            2 #{3}
            3 #{1}
