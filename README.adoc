@@ -339,3 +339,28 @@ Alternatively, you can prefix code-forms with `#high/%` in order to defer their 
 ----
 
 ====
+
+== Usage Notes
+
+=== EDN / Aero
+
+High works very well with EDN.
+In Clojure, High will automatically require & resolve any symbols in the EDN, so that `require` is not required.
+
+It was designed to be used with a library such as link:https://github.com/juxt/aero[aero] in order to make dev/prod changes to your system.
+Here's a minimal example system-config configured with aero:
+
+[source,clojure]
+.config.edn
+----
+{:system-config
+ {:components
+  {:db {:start (hikari-cp.core/make-datasource
+                 #profile
+                 {:dev
+                  {:adapter "h2"
+                   :url "jdbc:h2:~/test"}
+                  :prod
+                  {:jdbc-url "jdbc:sqlite:db/database.db"}})
+        :stop (hikari-cp.core/close-datasource this)}}}}
+----
