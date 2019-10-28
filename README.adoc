@@ -8,6 +8,15 @@ endif::[]
 High is an inversion of control API which minimizes impact on your code.
 It is an alternative to integrant, mount or component.
 
+== Project Status
+
+*Alpha*.
+High is based on existing working ideas, but hasn't yet been used in production.
+The core API is unlikely to change significantly, but there may be some small changes to the system-config format.
+Design feedback is welcome at this stage, there is still space for the rationale to change/expand.
+While bugs are avoided, the immaturity of the project makes them more likely.
+Please provide design feedback and report bugs on the link:https://github.com/SevereOverfl0w/high/issues/new[issue tracker].
+
 == Rationale
 
 === System as data
