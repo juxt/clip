@@ -146,6 +146,66 @@ It will be called at the appropriate time with the resolved value.
 
 ====
 
+=== In -main
+
+When starting your application from -main there's a few considerations:
+
+* Blocking forever (Use `@(promise)` to do this)
+* Storing the system for REPLing in later
+* Whether to shutdown the system or not
+
+[source,clojure]
+.Simplest version, blocking forever
+----
+(ns myapp.main
+  (:require
+    [myapp.system]
+    [io.dominic.high.core :as high]))
+
+(defn -main
+  [& _]
+  (high/start (myapp.system/system-config :prod))
+  @(promise))
+----
+
+[source,clojure]
+.Storing system for later
+----
+(ns myapp.main
+  (:require
+    [myapp.system]
+    [io.dominic.high.core :as high]))
+
+(def system nil)
+
+(defn -main
+  [& _]
+  (let [system (high/start (myapp.system/system-config :prod))]
+    (alter-var-root #'system (constantly system)))
+  @(promise))
+----
+
+[source,clojure]
+.Stopping system on shutdown
+----
+(ns myapp.main
+  (:require
+    [myapp.system]
+    [io.dominic.high.core :as high]))
+
+(def system nil)
+
+(defn -main
+  [& _]
+  (let [system-config (myapp.system/system-config :prod)
+        system (high/start system-config)]
+    (alter-var-root #'system (constantly system))
+    (.addShutdownHook
+     (Runtime/getRuntime)
+     (Thread. #(high/stop system-config system))))
+  @(promise))
+----
+
 === Reloaded
 
 High provides a namespace for easily setting up a reloaded workflow.
