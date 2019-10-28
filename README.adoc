@@ -364,3 +364,9 @@ Here's a minimal example system-config configured with aero:
                   {:jdbc-url "jdbc:sqlite:db/database.db"}})
         :stop (hikari-cp.core/close-datasource this)}}}}
 ----
+
+== Example Application
+
+* link:https://github.com/SevereOverfl0w/high-example[Official high-example repo]
+
+Want to add one? Open an issue or pull request.
