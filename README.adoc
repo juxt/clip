@@ -87,8 +87,9 @@ Instead High encourages you to make references live in the system, making it alw
 === Defining a system configuration
 
 You define a system configuration with data.
-A system is a map from `k` to configuration.
-Note the use of ``` in the example below, this is to prevent execution, you might find it easier to use EDN to define your system configuration.
+A system configuration contains a `:components` key and an optional `:executor` key.
+`:components` is a map from anything to a map of properties about that component.
+Note the use of ``` in the example below, this is to prevent execution, you might find it easier to use <<EDN>> to define your system configuration.
 
 [source,clojure]
 ----
@@ -109,6 +110,58 @@ Note the use of ``` in the example below, this is to prevent execution, you migh
 <4> Here we use `(high/ref)` to refer to the `:db` component.  This will be provided positionally to the function.
 <5> `:stop` has access to the variable `this` to refer to the started component.
 <6> You can control how a component is referenced by other components.  Here the `:server` key will be passed to other components referencing it (e.g. `:foo`).
+
+==== `:components` reference
+
+Out of the box, there are a handful of keys supported for a component.
+In the future this may be more extensible (please open an issue if you have a use-case!).
+
+Many of the values of these keys take code as data.
+This means that if you were to create them programmatically you have to create them using either `list` or quotes.
+Supporting code as data means that EDN-based systems can be defined, but also that there's special execution rules.
+
+Code as data means that you don't need to use actual function references, you can use symbols and these will be required & resolved by High.
+Requiring and resolving isn't supported in ClojureScript, see workaround in <<ClojureScript>>.
+
+Code is either executed with an "implicit target" or not.
+An example of an implicit target is the started instance.
+If an implicit target is available, you can provide a symbol or function without a list and it will be called with an argument which is the implicit target.
+If the function to call has multiple arguments, then you can use `this` to change where the implicit target will be placed.
+
+|===
+| Key | Implicit Target | Description
+ 
+| `:pre-start` | No | Run before starting the component
+| `:start` | No | Run to start the component, this will be what ends up in the system
+| `:post-start` | Started instance | Run with the started component, a useful place to perform migrations or seeding
+| `:stop` | Started instance (to stop) | Run with the started component, should be used to shut down the component.  Optional to add.  If not specified and value is AutoCloseable, then .close will be run on it
+| `:resolve` | Started instance | Run with the started component used by other components to get the value for this component when using `(high/ref)` 
+
+|===
+
+Supported values for code as data with implicit target:
+
+|===
+| Type | Description
+
+| Symbol | Resolved to function then called with target
+| Function | Resolved to function then called with target
+| Keyword | Used to get the key out of the target
+
+|===
+
+Supported values for code as data without implicit target:
+
+|===
+| Type | Description | Example(s)
+
+| Symbol | Resolved to function and called with no arguments | `'myapp.core/start-web-server`
+| Function | Called with no arguments | `myapp.core/start-web-server`
+| Vector | Recursed into, with arguments resolved | `[(high/ref :foo)]`
+| List | Called as if code | `(list 'myapp.core/start-web-server {:port 8000})` `'(myapp.core/start-web-server {:port 8000})`
+| :else | Returned unchanged | 
+
+|===
 
 === Async
 
@@ -345,6 +398,7 @@ Alternatively, you can prefix code-forms with `#high/%` in order to defer their 
 
 == Usage Notes
 
+[[EDN]]
 === EDN / Aero
 
 High works very well with EDN.
