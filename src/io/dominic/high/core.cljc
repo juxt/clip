@@ -63,7 +63,9 @@
   (let [{:keys [components executor]
          :or {executor impl/exec-queue}} system-config
         executor (->executor executor)
-        [g component-chain] (safely-derive-parts components ())]
+        [g component-chain] (safely-derive-parts
+                              (select-keys components (keys running-system))
+                              ())]
     (executor
       (map impl/stopping-f component-chain)
       running-system)))
