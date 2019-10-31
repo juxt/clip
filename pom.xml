@@ -5,7 +5,26 @@
   <artifactId>high</artifactId>
   <version>0.5.0</version>
   <name>high</name>
-  <dependencies/>
+  <dependencies>
+    <dependency>
+      <groupId>funcool</groupId>
+      <artifactId>promesa</artifactId>
+      <version>4.0.2</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>manifold</groupId>
+      <artifactId>manifold</artifactId>
+      <version>0.1.8</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>tools.namespace</artifactId>
+      <version>0.3.1</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
   <build>
     <sourceDirectory>src</sourceDirectory>
   </build>
