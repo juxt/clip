@@ -95,8 +95,8 @@
   [ref-to]
   (list 'high/ref ref-to))
 
-(defn deval-body
-  "EXPERIMENTAL.  Takes a body of code and defers evaluation of lists."
+(defn- deval-body
+  "Takes a body of code and defers evaluation of lists."
   [body]
   (walk/postwalk
     (fn [x]

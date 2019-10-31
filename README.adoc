@@ -376,26 +376,6 @@ This macro will convert lists of code it finds into non-evaluated lists, which c
 
 ====
 
-CAUTION: The following tagged literal is extremely experimental, feed-back on use is welcome.
-
-Alternatively, you can prefix code-forms with `#high/%` in order to defer their evaluation until the appropriate time.
-
-.`#high/%` use
-====
-
-[source,clojure]
-----
-(ns frontend.core
-  (require '[io.dominic.high.core :as high]))
-
-(def system-config
-  {:components
-    {:foo {:start 200}
-     :bar {:start #high/%(inc (high/ref :foo))}}})
-----
-
-====
-
 == Usage Notes
 
 [[EDN]]
