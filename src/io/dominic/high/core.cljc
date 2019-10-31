@@ -44,7 +44,7 @@
   (let [{:keys [components executor]
          :or {executor impl/exec-queue}} system-config
         executor (->executor executor)
-        [g component-chain] (safely-derive-parts components [])]
+        [_ component-chain] (safely-derive-parts components [])]
     (executor
       (for [component component-chain
             f [(impl/pre-starting-f components)
@@ -63,7 +63,7 @@
   (let [{:keys [components executor]
          :or {executor impl/exec-queue}} system-config
         executor (->executor executor)
-        [g component-chain] (safely-derive-parts
+        [_ component-chain] (safely-derive-parts
                               (select-keys components (keys running-system))
                               ())]
     (executor
