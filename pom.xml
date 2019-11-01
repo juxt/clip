@@ -37,7 +37,7 @@
 <scm>
     <url/>
     <tag>20f511304ddbee673dd2e0d8b2338389360f5749</tag>
-    <connection>scm:git:git@github.com:SevereOverfl0w/high.git</connection>
+    <connection>scm:git:git://github.com/SevereOverfl0w/high.git</connection>
     <developerConnection>scm:git:git@github.com:SevereOverfl0w/high.git</developerConnection>
   </scm>
 </project>
