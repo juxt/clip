@@ -2,7 +2,8 @@
 ifdef::env-github[]
 :toc:
 
-image::https://img.shields.io/clojars/v/io.dominic/high.svg[Clojars Project, link=https://clojars.org/io.dominic/high]
+image:https://img.shields.io/clojars/v/io.dominic/high.svg[Clojars Project, link=https://clojars.org/io.dominic/high]
+image:https://cljdoc.org/badge/io.dominic/high[cljdoc badge, link=https://cljdoc.org/d/io.dominic/high/CURRENT]
 endif::[]
 
 High is an inversion of control API which minimizes impact on your code.
