@@ -35,7 +35,7 @@
     </repository>
   </repositories>
 <scm>
-    <url/>
+    <url>https://github.com/SevereOverfl0w/high</url>
     <tag>bf9944c3d83c9975a9079beb22ce7e40475abf6d</tag>
     <connection>scm:git:git://github.com/SevereOverfl0w/high.git</connection>
     <developerConnection>scm:git:git@github.com:SevereOverfl0w/high.git</developerConnection>
