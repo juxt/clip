@@ -163,7 +163,7 @@
      (fn? x)
      (x)
      (vector? x)
-     (mapv evaluate-pseudo-clojure x)
+     (mapv evaluate-nested-clojure x)
      (sequential? x)
      (apply #?(:cljs (first x)
                :default (if (symbol? (first x))
