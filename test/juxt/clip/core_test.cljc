@@ -1,55 +1,55 @@
-(ns io.dominic.high.core-test
+(ns juxt.clip.core-test
   (:require
     [clojure.test :refer [deftest is]]
-    [io.dominic.high.core :as high]))
+    [juxt.clip.core :as clip]))
 
 (deftest start
   (is (= {:foo 1 :bar 2}
-         (high/start
+         (clip/start
            {:components
             {:foo {:start 1}
-             :bar {:start '(inc (high/ref :foo))}}})))
+             :bar {:start '(inc (clip/ref :foo))}}})))
 
   (is (= {nil 1 :bar 2}
-         (high/start
+         (clip/start
            {:components
             {nil {:start 1}
-             :bar {:start '(inc (high/ref nil))}}})))
+             :bar {:start '(inc (clip/ref nil))}}})))
 
   (is (= {:foo 1 :bar 3}
-         (high/start
+         (clip/start
            {:components
             {:foo {:start 1
                    :resolve inc}
-             :bar {:start '(inc (high/ref :foo))}}})))
+             :bar {:start '(inc (clip/ref :foo))}}})))
   
   (is (= {:foo 1 :bar 3 :baz 4}
-         (high/start
+         (clip/start
            {:components
             {:foo {:start 1
                    :resolve inc}
-             :bar {:start '(inc (high/ref :foo))}
-             :baz {:start (high/with-deps
+             :bar {:start '(inc (clip/ref :foo))}
+             :baz {:start (clip/with-deps
                             [{:keys [foo bar]}]
                             (+ foo bar))}}}))))
 
 (deftest start-graph-ex
   (is (thrown? Throwable
-               (high/start
+               (clip/start
                  {:components
-                  {:a {:start (high/ref :b)}
-                   :b {:start (high/ref :a)}}})))
+                  {:a {:start (clip/ref :b)}
+                   :b {:start (clip/ref :a)}}})))
   (is (thrown? Throwable
-               (high/start
+               (clip/start
                  {:components
-                  {:a {:start (high/ref :b)}
-                   :b {:start (high/ref :c)}
-                   :c {:start (high/ref :a)}}})))
+                  {:a {:start (clip/ref :b)}
+                   :b {:start (clip/ref :c)}
+                   :c {:start (clip/ref :a)}}})))
   (is (thrown? Throwable
-               (high/start
+               (clip/start
                  {:components
-                  {:a {:start (high/ref :b)}
-                   :b {:start (high/ref :fourohfour)}}}))))
+                  {:a {:start (clip/ref :b)}
+                   :b {:start (clip/ref :fourohfour)}}}))))
 
 (defn- reverse-contains?
   "contains? but with arguments switched for better `is` compatibility."
@@ -58,19 +58,19 @@
 
 (deftest start-ex
   (let [partial-failure (try
-                          (high/start
+                          (clip/start
                             {:components
                              {:a {:start "2020"}
-                              :b {:start `(+ (high/ref :a) 20)}}})
+                              :b {:start `(+ (clip/ref :a) 20)}}})
                           (catch Throwable t t))]
-    (is (reverse-contains? ::high/system (ex-data partial-failure)))
-    (is (reverse-contains? :a (::high/system (ex-data partial-failure))))
-    (is (not (reverse-contains? :b (::high/system (ex-data partial-failure)))))))
+    (is (reverse-contains? ::clip/system (ex-data partial-failure)))
+    (is (reverse-contains? :a (::clip/system (ex-data partial-failure))))
+    (is (not (reverse-contains? :b (::clip/system (ex-data partial-failure)))))))
 
 (deftest stop
   (let [stopped (atom {})
         running-system {:foo 1 :bar 2}]
-    (high/stop {:components
+    (clip/stop {:components
                 {:foo {:stop (list swap! stopped assoc :foo 'this)}
                  :bar {:stop (list swap! stopped assoc :bar 'this)}}}
                running-system)
@@ -81,7 +81,7 @@
                         java.io.Closeable
                         (close [this]
                           (reset! closed? true)))]
-    (high/stop {:components
+    (clip/stop {:components
                 {:foo {}}}
                {:foo auto-closable})
     (is (= true @closed?))))

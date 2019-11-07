@@ -1,8 +1,8 @@
-(ns io.dominic.high.repl
+(ns juxt.clip.repl
   "REPL utilities for running a system during development."
   (:require
     [clojure.tools.namespace.repl :as tns.repl]
-    [io.dominic.high.core :as high]))
+    [juxt.clip.core :as clip]))
 
 (tns.repl/disable-reload!)
 
@@ -17,21 +17,21 @@
   [system]
   (when system
     (let [system-config (::system-config (meta system))]
-      (high/stop system-config system)
+      (clip/stop system-config system)
       system)))
 
 (defn- start-system
   [system-config]
   (vary-meta
     (try
-      (high/start system-config)
+      (clip/start system-config)
       (catch Throwable t
-        (if-let [system (::high/system (ex-data t))]
+        (if-let [system (::clip/system (ex-data t))]
           ;; Partially started system found, we should call stop on it to clean
           ;; up.
           (do
             (try
-              (high/stop system-config system)
+              (clip/stop system-config system)
               (catch Throwable stop-t
                 (throw
                   (ex-info

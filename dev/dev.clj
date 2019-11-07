@@ -2,7 +2,7 @@
   (:require
     [datomic.api :as d]
     [yada.yada :as yada]
-    [io.dominic.high.core :as h]))
+    [juxt.clip.core :as h]))
 
 (defn seed-conn
   [conn]
@@ -27,11 +27,11 @@
    {:db {:pre-start `(d/create-database "datomic:mem://newdb")
          :start `(d/connect "datomic:mem://newdb")
          :post-start `seed-conn}
-    :handler {:start `(find-seed-resource (high/ref :db))}
-    :http {:start `(yada/listener (high/ref :handler))
+    :handler {:start `(find-seed-resource (clip/ref :db))}
+    :http {:start `(yada/listener (clip/ref :handler))
            :stop '((:close this))
            :resolve :server}
-    :foo {:start '(high/ref :http)}}})
+    :foo {:start '(clip/ref :http)}}})
 
 (def rf-system
   (#'h/exec-queue

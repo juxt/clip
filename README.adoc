@@ -1,22 +1,22 @@
-= High
+= Clip
 ifdef::env-github[]
 :toc:
 
-image:https://img.shields.io/clojars/v/io.dominic/high.svg[Clojars Project, link=https://clojars.org/io.dominic/high]
-image:https://cljdoc.org/badge/io.dominic/high[cljdoc badge, link=https://cljdoc.org/d/io.dominic/high/CURRENT]
+image:https://img.shields.io/clojars/v/juxt/clip.svg[Clojars Project, link=https://clojars.org/juxt/clip]
+image:https://cljdoc.org/badge/juxt/clip[cljdoc badge, link=https://cljdoc.org/d/juxt/clip/CURRENT]
 endif::[]
 
-High is an inversion of control API which minimizes impact on your code.
+Clip is an inversion of control API which minimizes impact on your code.
 It is an alternative to integrant, mount or component.
 
 == Project Status
 
 *Alpha*.
-High is based on existing working ideas, but hasn't yet been used in production.
+Clip is based on existing working ideas, but hasn't yet been used in production.
 The core API is unlikely to change significantly, but there may be some small changes to the system-config format.
 Design feedback is welcome at this stage, there is still space for the rationale to change/expand.
 While bugs are avoided, the immaturity of the project makes them more likely.
-Please provide design feedback and report bugs on the link:https://github.com/SevereOverfl0w/high/issues/new[issue tracker].
+Please provide design feedback and report bugs on the link:https://github.com/juxt/clip/issues/new[issue tracker].
 
 == Rationale
 
@@ -34,7 +34,7 @@ Systems may fail during startup, which can leave you in a state where a port is 
 ----
 
 This can lead to re-starting the REPL, which is a major interruption to flow.
-High provides a data model for your system, and will rethrow exceptions with the partially-started components attached in order to allow automatic recovery in the REPL or during tests.
+Clip provides a data model for your system, and will rethrow exceptions with the partially-started components attached in order to allow automatic recovery in the REPL or during tests.
 
 You may choose to make your system very granular.
 For example, you may choose to provide each web request handler with it's dependencies directly, rather than passing them via the router.
@@ -52,7 +52,7 @@ Instead of doing that, we can take a reference to a function (e.g. `ring.adapter
 This means that effort to wrap an existing library is minimal, you simply have to specify what to call.
 This also removes the problem of inventing new strategies for tying a keyword back to a namespace as Integrant has to, by directly using the fully qualified symbol which already includes the namespace as required. 
 In addition, normal functions support doc-strings, making for easy documentation.
-Finally, this use of vars means that your library is not coupled to High in any way, yet it's easy to use directly from High.
+Finally, this use of vars means that your library is not coupled to Clip in any way, yet it's easy to use directly from Clip.
 
 === Transitions
 
@@ -61,10 +61,10 @@ The most common example is seeding a database.
 Before other components can function (such as a health check) the migration must have run.
 Existing approaches require us to either taint our component's `start` with additional side-effect code (complecting connection with migration) or to create side-effecting components which others must then depend upon.
 
-High by default, provides a :pre and :post phase for start-up, enabling you to run setup before/after starting the component.
+Clip by default, provides a :pre and :post phase for start-up, enabling you to run setup before/after starting the component.
 For example, you may need to call `datomic.api/create-database` before connecting to it, and you may want to call `my.app/seed-db` after starting it, but before passing it around.
 
-High is also simple, it separates out running many actions on your system.
+Clip is also simple, it separates out running many actions on your system.
 This allows you to define custom phases for components, if you need them.
 
 === Async
@@ -73,7 +73,7 @@ Async is a significant part of systems when doing ClojureScript applications.
 Something as simple as reading data from disk or fetching the user from a remote endpoint will cause your entire system to be aware of the callback.
 
 Interceptors have shown that async can be a layered-on concern, rather than being intrinsically present in all consumption of the result.
-High provides multiple "executors" for running actions against your system, providing out of the box support for sync (no async), promesa, and manifold.
+Clip provides multiple "executors" for running actions against your system, providing out of the box support for sync (no async), promesa, and manifold.
 If you need an additional executor, they are fairly simple to write.
 
 === Obvious
@@ -81,7 +81,7 @@ If you need an additional executor, they are fairly simple to write.
 Obvious connections between actions are easier to understand than obscure ones.
 Use of inheritance for references or relying on implicit dependencies increases the obscurity of your API.
 Component and Integrant allow you to spread out your references through the use of `using` and `prep-key`.
-Instead High encourages you to make references live in the system, making it always obvious how components connect together.
+Instead Clip encourages you to make references live in the system, making it always obvious how components connect together.
 
 == Usage
 
@@ -99,16 +99,16 @@ Note the use of ``` in the example below, this is to prevent execution, you migh
    {:db {:pre-start `(d/create-database "datomic:mem://newdb") ;; <1>
          :start `(d/connect "datomic:mem://newdb") ;; <2>
          :post-start `seed-conn} ;; <3>
-    :handler {:start `(find-seed-resource (high/ref :db))} ;; <4>
-    :http {:start `(yada/listener (high/ref :handler))
+    :handler {:start `(find-seed-resource (clip/ref :db))} ;; <4>
+    :http {:start `(yada/listener (clip/ref :handler))
            :stop '((:close this)) ;; <5>
            :resolve :server} ;; <6>
-    :foo {:start '(high/ref :http)}}})
+    :foo {:start '(clip/ref :http)}}})
 ----
 <1> `:pre-start` will be run before `:start` for your component.  Here we use it to run the required `create-database` in datomic.
 <2> `:start` is run and returns the value that other components will refer to.
 <3> `:post-start` is run before passing the component to any other components.  Here, we use it to seed the connection.  Because we provided a symbol, it will be resolved and called like so `(seed-conn conn)` where `conn` is the started component.
-<4> Here we use `(high/ref)` to refer to the `:db` component.  This will be provided positionally to the function.
+<4> Here we use `(clip/ref)` to refer to the `:db` component.  This will be provided positionally to the function.
 <5> `:stop` has access to the variable `this` to refer to the started component.
 <6> You can control how a component is referenced by other components.  Here the `:server` key will be passed to other components referencing it (e.g. `:foo`).
 
@@ -121,7 +121,7 @@ Many of the values of these keys take code as data.
 This means that if you were to create them programmatically you have to create them using either `list` or quotes.
 Supporting code as data means that EDN-based systems can be defined, but also that there's special execution rules.
 
-Code as data means that you don't need to use actual function references, you can use symbols and these will be required & resolved by High.
+Code as data means that you don't need to use actual function references, you can use symbols and these will be required & resolved by Clip.
 Requiring and resolving isn't supported in ClojureScript, see workaround in <<ClojureScript>>.
 
 Code is either executed with an "implicit target" or not.
@@ -136,7 +136,7 @@ If the function to call has multiple arguments, then you can use `this` to chang
 | `:start` | No | Run to start the component, this will be what ends up in the system
 | `:post-start` | Started instance | Run with the started component, a useful place to perform migrations or seeding
 | `:stop` | Started instance (to stop) | Run with the started component, should be used to shut down the component.  Optional to add.  If not specified and value is AutoCloseable, then .close will be run on it
-| `:resolve` | Started instance | Run with the started component used by other components to get the value for this component when using `(high/ref)` 
+| `:resolve` | Started instance | Run with the started component used by other components to get the value for this component when using `(clip/ref)` 
 
 |===
 
@@ -158,7 +158,7 @@ Supported values for code as data without implicit target:
 
 | Symbol | Resolved to function and called with no arguments | `'myapp.core/start-web-server`
 | Function | Called with no arguments | `myapp.core/start-web-server`
-| Vector | Recursed into, with arguments resolved | `[(high/ref :foo)]`
+| Vector | Recursed into, with arguments resolved | `[(clip/ref :foo)]`
 | List | Called as if code | `(list 'myapp.core/start-web-server {:port 8000})` `'(myapp.core/start-web-server {:port 8000})`
 | :else | Returned unchanged | 
 
@@ -166,7 +166,7 @@ Supported values for code as data without implicit target:
 
 === Async
 
-In High, async is achieved by using alternative executors.
+In Clip, async is achieved by using alternative executors.
 Out of the box support is provided for link:https://github.com/funcool/promesa[promesa] and link:https://github.com/ztellman/manifold[manifold].
 Open an issue if you'd like to see support for another popular library.
 
@@ -177,10 +177,10 @@ Executors are specified on your system, and can either be a symbol pointing at a
 
 [source,clojure]
 ----
-{:executor io.dominic.high.promesa/exec
+{:executor juxt.clip.promesa/exec
  :components
  {:a {:start `(promesa.core/resolved 10)}
-  :b {:start `(inc (high/ref :a))}}}
+  :b {:start `(inc (clip/ref :a))}}}
 ----
 
 Note that `:b` does not need to be aware that `:a` returns an async value.
@@ -195,10 +195,10 @@ It will be called at the appropriate time with the resolved value.
 ----
 (require '[manifold.deferred :as d])
 
-{:executor io.dominic.high.manifold/exec
+{:executor juxt.clip.manifold/exec
  :components
  {:a {:start `(d/chain 10)}
-  :b {:start `(inc (high/ref :a))}}}
+  :b {:start `(inc (clip/ref :a))}}}
 ----
 
 ====
@@ -217,11 +217,11 @@ When starting your application from -main there's a few considerations:
 (ns myapp.main
   (:require
     [myapp.system]
-    [io.dominic.high.core :as high]))
+    [juxt.clip.core :as clip]))
 
 (defn -main
   [& _]
-  (high/start (myapp.system/system-config :prod))
+  (clip/start (myapp.system/system-config :prod))
   @(promise))
 ----
 
@@ -231,13 +231,13 @@ When starting your application from -main there's a few considerations:
 (ns myapp.main
   (:require
     [myapp.system]
-    [io.dominic.high.core :as high]))
+    [juxt.clip.core :as clip]))
 
 (def system nil)
 
 (defn -main
   [& _]
-  (let [system (high/start (myapp.system/system-config :prod))]
+  (let [system (clip/start (myapp.system/system-config :prod))]
     (alter-var-root #'system (constantly system)))
   @(promise))
 ----
@@ -248,24 +248,24 @@ When starting your application from -main there's a few considerations:
 (ns myapp.main
   (:require
     [myapp.system]
-    [io.dominic.high.core :as high]))
+    [juxt.clip.core :as clip]))
 
 (def system nil)
 
 (defn -main
   [& _]
   (let [system-config (myapp.system/system-config :prod)
-        system (high/start system-config)]
+        system (clip/start system-config)]
     (alter-var-root #'system (constantly system))
     (.addShutdownHook
      (Runtime/getRuntime)
-     (Thread. #(high/stop system-config system))))
+     (Thread. #(clip/stop system-config system))))
   @(promise))
 ----
 
 === Reloaded
 
-High provides a namespace for easily setting up a reloaded workflow.
+Clip provides a namespace for easily setting up a reloaded workflow.
 You will need to add a dependency on link:https://github.com/clojure/tools.namespace[tools.namespace] to your project.
 
 You should call `set-init!` with a function which will return your system-config.
@@ -277,7 +277,7 @@ Usually you will have such a function defined in another namespace that takes a 
 (ns dev
   (:require
     [app.system]
-    [io.dominic.high.repl :refer [start stop reset set-init! system]]))
+    [juxt.clip.repl :refer [start stop reset set-init! system]]))
 
 (set-init! #(app.system/system-config :dev))
 ----
@@ -287,18 +287,18 @@ Alternatively you can roll your own Reloaded workflow quite easily, but you will
 [source,clojure]
 ----
 (ns dev
-  (:require [io.dominic.high.core :as high]
+  (:require [juxt.clip.core :as clip]
             [clojure.tools.namespace.repl :refer [refresh]]))
 
 (def system-config {:a {:start 1}})
 (def system nil)
 
 (defn go []
-  (alter-var-root #'system (constantly (high/start system-config))))
+  (alter-var-root #'system (constantly (clip/start system-config))))
 
 (defn stop []
   (alter-var-root #'system
-    (fn [s] (when s (high/stop system-config s)))))
+    (fn [s] (when s (clip/stop system-config s)))))
 
 (defn reset []
   (stop)
@@ -317,12 +317,12 @@ You must use `list` to create a list-form.
 [source,clojure]
 ----
 (ns frontend.core
-  (:require [io.dominic.high.core :as high]))
+  (:require [juxt.clip.core :as clip]))
 
 (def system-config
   {:components
     {:foo {:start 200}
-     :bar {:start (list inc (high/ref :foo))}}})
+     :bar {:start (list inc (clip/ref :foo))}}})
 ----
 
 ====
@@ -330,7 +330,7 @@ You must use `list` to create a list-form.
 CAUTION: The following macro is experimental, feedback on use is welcome. However, of the following experimental options it is currently the forerunner.
 
 There is a macro called `with-deps` that allows you to write a code-form and bind the dependencies required.
-This is useful when using High from a code (rather than data) context.
+This is useful when using Clip from a code (rather than data) context.
 It's also particularly useful in ClojureScript where symbols cannot be resolved back to functions.
 
 `with-deps` takes `bindings` and a `body`, much like `fn`.
@@ -343,13 +343,13 @@ You _must_ use link:https://clojure.org/guides/destructuring#_associative_destru
 [source,clojure]
 ----
 (ns frontend.core
-  (:require [io.dominic.high.core :as high :include-macros true]))
+  (:require [juxt.clip.core :as clip :include-macros true]))
 
 (def system-config
   {:components
     {:foo {:start 200}
      :bar {:start 300}
-     :baz {:start (high/with-deps [{:keys [foo bar]}]
+     :baz {:start (clip/with-deps [{:keys [foo bar]}]
                     (+ foo bar))}}})
 ----
 
@@ -358,7 +358,7 @@ You _must_ use link:https://clojure.org/guides/destructuring#_associative_destru
 CAUTION: The following macro is extremely experimental, feed-back on use is welcome.
 
 You can also bring in the `deval` macro.
-This macro will convert lists of code it finds into non-evaluated lists, which can later be interpreted by High.
+This macro will convert lists of code it finds into non-evaluated lists, which can later be interpreted by Clip.
 
 .Deval Usage
 ====
@@ -366,13 +366,13 @@ This macro will convert lists of code it finds into non-evaluated lists, which c
 [source,clojure]
 ----
 (ns frontend.core
-  (require '[io.dominic.high.core :as high :include-macros true]))
+  (require '[juxt.clip.core :as clip :include-macros true]))
 
 (def system-config
-  (high/deval
+  (clip/deval
     {:components
       {:foo {:start 200}
-       :bar {:start (inc (high/ref :foo))}}}))
+       :bar {:start (inc (clip/ref :foo))}}}))
 ----
 
 ====
@@ -382,8 +382,8 @@ This macro will convert lists of code it finds into non-evaluated lists, which c
 [[EDN]]
 === EDN / Aero
 
-High works very well with EDN.
-In Clojure, High will automatically require & resolve any symbols in the EDN, so that `require` is not required.
+Clip works very well with EDN.
+In Clojure, Clip will automatically require & resolve any symbols in the EDN, so that `require` is not required.
 
 It was designed to be used with a library such as link:https://github.com/juxt/aero[aero] in order to make dev/prod changes to your system.
 Here's a minimal example system-config configured with aero:
@@ -405,6 +405,6 @@ Here's a minimal example system-config configured with aero:
 
 == Example Application
 
-* link:https://github.com/SevereOverfl0w/high-example[Official high-example repo]
+* link:https://github.com/juxt/clip-example[Official clip-example repo]
 
 Want to add one? Open an issue or pull request.

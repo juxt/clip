@@ -1,4 +1,4 @@
-(ns io.dominic.high.promesa
+(ns juxt.clip.promesa
   (:require
     [promesa.core :as p]))
 
@@ -17,15 +17,15 @@
                           (p/catch
                             (fn [e]
                               (throw (ex-info "Failure while executing on system" 
-                                              {:io.dominic.high.core/type :thrown
-                                               :io.dominic.high.core/system acc
-                                               :io.dominic.high.core/unapplied-v v}
+                                              {:juxt.clip.core/type :thrown
+                                               :juxt.clip.core/system acc
+                                               :juxt.clip.core/unapplied-v v}
                                               e))))))
                     acc)
                  (catch #?(:clj Throwable :cljs js/Error) t
                    (throw (ex-info "Failure while executing on system" 
-                                   {:io.dominic.high.core/type :thrown
-                                    :io.dominic.high.core/system acc}
+                                   {:juxt.clip.core/type :thrown
+                                    :juxt.clip.core/system acc}
                                    t))))))))
      init
      q)))
@@ -33,8 +33,8 @@
 (comment
   (def system2
     {:foo {:start `(p/resolved 10)}
-     :bar {:start '(inc (high/ref :foo))}})
-  (require '[io.dominic.high.impl.core :as impl])
+     :bar {:start '(inc (clip/ref :foo))}})
+  (require '[juxt.clip.impl.core :as impl])
   @(exec
      (concat
        (for [f [(impl/pre-starting-f system2)

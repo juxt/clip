@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-output="high.jar"
+output="clip.jar"
 
 clojure -A:garamond -p
-clojure -A:pack mach.pack.alpha.skinny --no-libs --project-path high.jar
-mvn deploy:deploy-file "-Dfile=high.jar" -DrepositoryId=clojars -Durl=https://clojars.org/repo -DpomFile=pom.xml
+clojure -A:pack mach.pack.alpha.skinny --no-libs --project-path clip.jar
+mvn deploy:deploy-file "-Dfile=clip.jar" -DrepositoryId=clojars -Durl=https://clojars.org/repo -DpomFile=pom.xml

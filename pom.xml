@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>io.dominic</groupId>
-  <artifactId>high</artifactId>
+  <groupId>juxt</groupId>
+  <artifactId>clip</artifactId>
   <version>0.9.0</version>
-  <name>high</name>
+  <name>clip</name>
   <dependencies>
     <dependency>
       <groupId>funcool</groupId>
@@ -35,9 +35,9 @@
     </repository>
   </repositories>
 <scm>
-    <url>https://github.com/SevereOverfl0w/high</url>
+    <url>https://github.com/juxt/clip</url>
     <tag>8111f409adbf0f126d4d58e877111a7a020ff9a2</tag>
-    <connection>scm:git:git://github.com/SevereOverfl0w/high.git</connection>
-    <developerConnection>scm:git:git@github.com:SevereOverfl0w/high.git</developerConnection>
+    <connection>scm:git:git://github.com/juxt/clip.git</connection>
+    <developerConnection>scm:git:git@github.com:juxt/clip.git</developerConnection>
   </scm>
 </project>

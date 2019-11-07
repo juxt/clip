@@ -1,6 +1,6 @@
-(ns io.dominic.high.core
+(ns juxt.clip.core
   (:refer-clojure :exclude [ref])
-  (:require [io.dominic.high.impl.core :as impl]
+  (:require [juxt.clip.impl.core :as impl]
             [clojure.walk :as walk]))
 
 (defn- safely-derive-parts
@@ -72,17 +72,17 @@
 
 (comment
   (start
-    {:components '{:foo {:start (high/ref :bar)}
-                   :bar {:start (high/ref :foo)}
-                   :baz {:start (high/ref :baz)}
-                   :foob {:start (high/ref :nowhere)}}
+    {:components '{:foo {:start (clip/ref :bar)}
+                   :bar {:start (clip/ref :foo)}
+                   :baz {:start (clip/ref :baz)}
+                   :foob {:start (clip/ref :nowhere)}}
      :executor impl/exec-queue})
 
   (let [system-config {:components '{:foo {:pre-start (prn "init:foo")
                                            :start 1
                                            :post-start prn
                                            :stop prn}
-                                     :bar {:start (inc (high/ref :foo))
+                                     :bar {:start (inc (clip/ref :foo))
                                            :stop prn}}
                        :executor impl/promesa-exec-queue}]
     (stop system-config (start system-config))))
@@ -93,7 +93,7 @@
 
 (defn ref
   [ref-to]
-  (list 'high/ref ref-to))
+  (list 'clip/ref ref-to))
 
 (defn- deval-body
   "Takes a body of code and defers evaluation of lists."
@@ -101,7 +101,7 @@
   (walk/postwalk
     (fn [x]
       (if (and (list? x)
-               (not= (first x) 'high/ref))
+               (not= (first x) 'clip/ref))
         (cons `list x)
         x))
     body))

@@ -1,4 +1,4 @@
-(ns io.dominic.high.impl.core
+(ns juxt.clip.impl.core
   (:require [clojure.walk :as walk]))
 
 (defn sccs
@@ -63,7 +63,7 @@
 
 (defn ref?
   [x]
-  (= 'high/ref (and (coll? x) (first x))))
+  (= 'clip/ref (and (coll? x) (first x))))
 
 (def ^:private ref-to second)
 
@@ -77,7 +77,7 @@
                            (tree-seq coll? seq)
                            (filter ref?)
                            (map ref-to))
-                      (:io.dominic.high.core/deps
+                      (:juxt.clip.core/deps
                         (meta (:start v)))))])
              system)))
 
@@ -114,13 +114,13 @@
     (pr-str dependency-error)))
 
 (comment
-  (let [bad-system '{:a {:start (high/ref :does-not-exist)}
-                     :b {:start (high/ref :c)}
-                     :c {:start (high/ref :b)}
+  (let [bad-system '{:a {:start (clip/ref :does-not-exist)}
+                     :b {:start (clip/ref :c)}
+                     :c {:start (clip/ref :b)}
                      
-                     :d {:start (high/ref :e)}
-                     :e {:start (high/ref :f)}
-                     :f {:start (high/ref :d)}}]
+                     :d {:start (clip/ref :e)}
+                     :e {:start (clip/ref :f)}
+                     :f {:start (clip/ref :d)}}]
     (map
       (or #_identity human-render-dependency-error)
       (dependency-errors
@@ -215,15 +215,15 @@
             (evaluate-pseudo-clojure
               (get-in components [to :resolve]))))
 
-        #_#_(:io.dominic.high.core/deps (meta x))
+        #_#_(:juxt.clip.core/deps (meta x))
         (vary-meta x
                    assoc
-                   :io.dominic.high.core/resolved-deps
-                   (zipmap (:io.dominic.high.core/deps (meta x))
+                   :juxt.clip.core/resolved-deps
+                   (zipmap (:juxt.clip.core/deps (meta x))
                            ;; TODO: :resolve
                            (map
                              #(get running-system %)
-                             (:io.dominic.high.core/deps (meta x)))))
+                             (:juxt.clip.core/deps (meta x)))))
 
         :else
         x))
@@ -259,11 +259,11 @@
       (close [this]
         (println  "Closing a stateful thing"))))
   (def system2
-    '{:a {:start (io.dominic.high.core/StatefulThing)
+    '{:a {:start (juxt.clip.core/StatefulThing)
           :pre-start (println "aaaa")}
       :num {:start 10
             :stop (println "num-->" this)}
-      :b {:start (inc (high/ref :num))
+      :b {:start (inc (clip/ref :num))
           :pre-start (println "bbbb")
           :post-start  (println "postpostpost" this)}}))
 
@@ -328,8 +328,8 @@
          (f assoc acc)
          (catch #?(:clj Throwable :cljs js/Error) t
            (throw (ex-info "Failure while executing on system"
-                           {:io.dominic.high.core/type :thrown
-                            :io.dominic.high.core/system acc}
+                           {:juxt.clip.core/type :thrown
+                            :juxt.clip.core/system acc}
                            t)))))
      init q)))
 
