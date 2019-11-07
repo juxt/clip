@@ -149,9 +149,10 @@
 
 (defn evaluate-nested-clojure
   [x]
-  (if (fn? x)
-    x
-    (evaluate-pseudo-clojure x)))
+  (cond
+    (fn? x) x
+    #?@(:clj [(symbol? x) (requiring-resolve (namespace-symbol x))])
+    :else (evaluate-pseudo-clojure x)))
 
 (defn evaluate-pseudo-clojure
   ([x]
