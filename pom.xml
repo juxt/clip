@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>juxt</groupId>
   <artifactId>clip</artifactId>
-  <version>0.9.0</version>
+  <version>0.10.0</version>
   <name>clip</name>
   <dependencies>
     <dependency>
@@ -36,7 +36,7 @@
   </repositories>
 <scm>
     <url>https://github.com/juxt/clip</url>
-    <tag>8111f409adbf0f126d4d58e877111a7a020ff9a2</tag>
+    <tag>b95a84cd99a7e3fb1e71941fcd33d7df66a9958f</tag>
     <connection>scm:git:git://github.com/juxt/clip.git</connection>
     <developerConnection>scm:git:git@github.com:juxt/clip.git</developerConnection>
   </scm>
