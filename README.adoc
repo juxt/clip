@@ -377,6 +377,18 @@ This macro will convert lists of code it finds into non-evaluated lists, which c
 
 ====
 
+== Comparison with other libraries
+
+|===
+|Name      |Need/has wrappers for libs |Extension mechanism |Suspension  |System location |Multiple parallel systems? |Transparent async between components?
+
+|Component |Yes                        |Protocol            |Via library |Map             |Yes                        |No
+|Integrant |Yes                        |Multi-method        |Yes         |Map             |Yes                        |No
+|Clip      |No                         |Code/code as data   |Coming      |Map             |Yes                        |Yes
+|Mount     |No                         |Code                |No          |Namespace       |No                         |No
+
+|===
+
 == Usage Notes
 
 [[EDN]]
