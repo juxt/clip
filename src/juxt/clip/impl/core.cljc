@@ -145,54 +145,43 @@
           (into-array Object %&))
        (requiring-resolve (namespace-symbol sym)))))
 
-(declare evaluate-pseudo-clojure)
-
-(defn evaluate-nested-clojure
-  [x]
-  (cond
-    (fn? x) x
-    #?@(:clj [(symbol? x) (requiring-resolve (namespace-symbol x))])
-    :else (evaluate-pseudo-clojure x)))
-
 (defn evaluate-pseudo-clojure
-  ([x]
-   (cond
-     #?@(:clj
-          [(symbol? x)
-           ((requiring-resolve (namespace-symbol x)))])
-     (fn? x)
-     (x)
-     (vector? x)
-     (mapv evaluate-nested-clojure x)
-     (sequential? x)
-     (apply #?(:cljs (first x)
-               :default (if (symbol? (first x))
-                          (if-let [f (symbol->f (first x))]
-                            f
-                            (throw
-                              (ex-info
-                                (str "Got null for function looking up symbol: "
-                                     (first x))
-                                {})))
-                          (if-let [f (evaluate-nested-clojure (first x))]
-                            f
-                            (throw (ex-info (str "Got null for function while evaluating form " x) {})))))
-            (map evaluate-nested-clojure (rest x)))
-     :else x))
+  ([form]
+   (let [form (if (or (keyword? form) (symbol? form) (fn? form))
+                (list form)
+                form)]
+     (walk/postwalk
+       (fn [x]
+         (if (seq? x)
+           (apply #?(:cljs (first x)
+                     :default (cond
+                                (symbol? (first x))
+                                (if-let [f (symbol->f (first x))]
+                                  f
+                                  (throw
+                                    (ex-info
+                                      (str "Got null for function looking up symbol: "
+                                           (first x))
+                                      {})))
 
-  ([x implicit-target]
-   (cond
-     #?@(:clj
-          [(symbol? x)
-           ((requiring-resolve (namespace-symbol x)) implicit-target)])
+                                (ifn? (first x))
+                                (first x)
 
-     (fn? x)
-     (x implicit-target)
-
-     (keyword? x)
-     (get implicit-target x)
-
-     :else (evaluate-pseudo-clojure x))))
+                                :else
+                                (throw (ex-info (str "Unsupported callable: " (pr-str (first x)))
+                                                {::callable (first x)
+                                                 ::form x}))))
+                  #?(:cljs (rest x)
+                     :default (map (fn [x] (if (symbol? x)
+                                             (requiring-resolve (namespace-symbol x))
+                                             x))
+                                   (rest x))))
+           x))
+       form)))
+  ([form implicit-target]
+   (if (or (keyword? form) (symbol? form) (fn? form))
+     (list form implicit-target)
+     (evaluate-pseudo-clojure form))))
 
 (defn resolver
   [x p? lookup]
