@@ -280,8 +280,8 @@
 
 (defn pre-starting-f
   [components]
-  (fn [[k {:keys [pre-start]}]]
-    (fn [rf acc]
+  (fn [[_ {:keys [pre-start]}]]
+    (fn [_ acc]
       (when pre-start
         (binding [*running-system* acc]
           (evaluate-pseudo-clojure
@@ -291,7 +291,7 @@
 (defn post-starting-f
   [components]
   (fn [[k {:keys [post-start]}]]
-    (fn [rf acc]
+    (fn [_ acc]
       (when post-start
         (binding [*running-system* acc]
           (evaluate-pseudo-clojure
