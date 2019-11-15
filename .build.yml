@@ -1,0 +1,10 @@
+image: archlinux
+packages:
+  - clojure
+  - jdk8-openjdk
+sources:
+  - https://github.com/juxt/clip
+tasks:
+  - test: |
+      cd clip
+      clojure -A:test
