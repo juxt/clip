@@ -85,6 +85,16 @@
     (clip/stop {:components
                 {:foo {}}}
                {:foo auto-closable})
+    (is (= true @closed?)))
+
+  (let [closed? (atom false)
+        auto-closable (reify
+                        Object
+                        (toString [this]
+                          (reset! closed? true)
+                          ""))]
+    (clip/stop '{:components {:foo {:stop (.toString this)}}}
+               {:foo auto-closable})
     (is (= true @closed?))))
 
 (deftest evaluation
