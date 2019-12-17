@@ -179,9 +179,10 @@
            x))
        form)))
   ([form implicit-target]
-   (if (or (keyword? form) (symbol? form) (fn? form))
-     (list form implicit-target)
-     (evaluate-pseudo-clojure form))))
+   (evaluate-pseudo-clojure
+     (if (or (keyword? form) (symbol? form) (fn? form))
+       (list form implicit-target)
+       form))))
 
 (defn resolver
   [x p? lookup]
