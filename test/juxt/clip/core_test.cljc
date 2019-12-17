@@ -121,4 +121,12 @@
   (are [x] (= (meta x)
               (meta (::foo (clip/start {:components {::foo {:start x}}}))))
        ^:foo [:a :b :c :d]
-       ^:foo {:a :b :c :d}))
+       ^:foo {:a :b :c :d})
+  
+  (are [expect started stop-with]
+       (= expect (::foo (clip/stop {:components {::foo {:stop stop-with}}}
+                                   {::foo started})))
+       1 0 inc
+       1 0 `inc
+       1 0 'inc
+       1 {:foo 1} :foo))
