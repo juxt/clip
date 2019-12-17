@@ -16,7 +16,9 @@
 
   :garamond
   {:main-opts ["-m" "garamond.main"]
-   :extra-deps {com.workframe/garamond {:mvn/version "0.4.0"}}}
+   :extra-deps {com.workframe/garamond
+                {:git/url "https://github.com/SevereOverfl0w/garamond.git"
+                 :sha "25b162c759090584d881a4f945144d8d7c06dbfd"}}}
 
   :cljs-repl
   {:extra-deps
