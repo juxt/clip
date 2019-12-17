@@ -5,7 +5,26 @@
   <artifactId>clip</artifactId>
   <version>0.14.0</version>
   <name>clip</name>
-  <dependencies/>
+  <dependencies>
+    <dependency>
+      <groupId>funcool</groupId>
+      <artifactId>promesa</artifactId>
+      <version>4.0.2</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>manifold</groupId>
+      <artifactId>manifold</artifactId>
+      <version>0.1.8</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>tools.namespace</artifactId>
+      <version>0.3.1</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
   <build>
     <sourceDirectory>src</sourceDirectory>
   </build>
@@ -18,7 +37,7 @@
 <scm>
     <url>https://github.com/juxt/clip</url>
     <tag>d7f63c6a266355c68ec98740bcd3efa1dc52170f</tag>
-    <connection>scm:git:ssh://git@github.com/juxt/clip</connection>
-    <developerConnection>scm:git:ssh://git@github.com/juxt/clip</developerConnection>
+    <connection>scm:git:git://github.com/juxt/clip.git</connection>
+    <developerConnection>scm:git:git@github.com:juxt/clip.git</developerConnection>
   </scm>
 </project>
