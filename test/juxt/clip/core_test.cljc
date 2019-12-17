@@ -117,7 +117,9 @@
                                                      ::foo {:start (clip/ref ::init)}}})))
        5 :foo {:foo 5}
        6 'inc 5
-       6 inc 5)
+       6 inc 5
+
+       (list 1 2 3) :foo '{:foo (list 1 2 3)})
   (are [x] (= (meta x)
               (meta (::foo (clip/start {:components {::foo {:start x}}}))))
        ^:foo [:a :b :c :d]
@@ -129,4 +131,11 @@
        1 0 inc
        1 0 `inc
        1 0 'inc
-       1 {:foo 1} :foo))
+       1 {:foo 1} :foo
+       (list 1 2 3) (list 1 2 3) identity
+       (list 1 2 3) (list 1 2 3) '(identity this))
+  (is
+    (= (list 1 2 3)
+       (::foo (clip/start
+                {:components {::foo {:start (clip/ref ::bar)}
+                              ::bar {:start '(list 1 2 3)}}})))))

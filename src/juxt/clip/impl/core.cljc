@@ -127,6 +127,29 @@
         (sccs (system-dependency-graph bad-system))
         (system-dependency-graph bad-system)))))
 
+(defprotocol IPreventEval
+  (-get-value [this] "Return value that has been blocked from evaluation"))
+
+(defn- prevent-eval
+  [x]
+  (reify
+    IPreventEval
+    (-get-value [_] x)
+    Object
+    (toString [_]
+      (str "#blocked-eval [" (.toString x) "]"))))
+
+(defn- blocked-eval?
+  [x]
+  (satisfies? IPreventEval x))
+
+(defn- get-value
+  [x]
+  (loop [x x]
+    (if (blocked-eval? x)
+      (recur (-get-value x))
+      x)))
+
 (defn namespace-symbol
   "Returns symbol unchanged if it has a namespace, or with clojure.core as it's
   namespace otherwise."
@@ -152,7 +175,8 @@
                 form)]
      (walk/postwalk
        (fn [x]
-         (if (seq? x)
+         (cond
+           (seq? x)
            (apply #?(:cljs (first x)
                      :default (cond
                                 (symbol? (first x))
@@ -176,19 +200,24 @@
                                              (requiring-resolve (namespace-symbol x))
                                              x))
                                    (rest x))))
+
+           (blocked-eval? x)
+           (get-value x)
+
+           :else
            x))
        form)))
   ([form implicit-target]
    (evaluate-pseudo-clojure
      (if (or (keyword? form) (symbol? form) (fn? form))
-       (list form implicit-target)
+       (list form (prevent-eval implicit-target))
        form))))
 
 (defn resolver
   [x p? lookup]
   (walk/postwalk
     (fn [x]
-      (if (p? x) (lookup x) x))
+      (if (p? x) (prevent-eval (lookup x)) x))
     x))
 
 (def ^:dynamic *running-system*)
@@ -200,11 +229,14 @@
       (cond
         (ref? x)
         (let [to (ref-to x)]
-          (cond->> (get running-system to)
+          (cond->> (prevent-eval (get running-system to))
 
             (get-in components [to :resolve])
             (evaluate-pseudo-clojure
-              (get-in components [to :resolve]))))
+              (get-in components [to :resolve]))
+
+            (get-in components [to :resolve])
+            prevent-eval))
 
         #_#_(:juxt.clip.core/deps (meta x))
         (vary-meta x
