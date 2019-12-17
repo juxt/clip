@@ -307,8 +307,7 @@
   (fn [rf acc]
     (stop! (get acc k) stop)
     (-> acc
-        (rf (str k "-stop1") :value1)
-        (rf (str k "-stop2") :value2))))
+        (rf k (stop! (get acc k) stop)))))
 
 (defn exec-queue
   ([q] (exec-queue q {}))
