@@ -63,7 +63,8 @@
 
 (defn ref?
   [x]
-  (= 'clip/ref (and (coll? x) (first x))))
+  (or (= 'clip/ref (and (coll? x) (first x)))
+      (= 'juxt.clip.core/ref (and (coll? x) (first x)))))
 
 (def ^:private ref-to second)
 
