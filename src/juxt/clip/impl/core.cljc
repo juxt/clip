@@ -175,39 +175,43 @@
                 (list form)
                 form)]
      (walk/postwalk
-       (fn [x]
-         (cond
-           (seq? x)
-           (apply #?(:cljs (first x)
-                     :default (cond
-                                (symbol? (first x))
-                                (if-let [f (symbol->f (first x))]
-                                  f
-                                  (throw
-                                    (ex-info
-                                      (str "Got null for function looking up symbol: "
-                                           (first x))
-                                      {})))
+       get-value
+       (walk/postwalk
+         (fn [x]
+           (cond
+             (seq? x)
+             (prevent-eval
+               (apply #?(:cljs (first x)
+                         :default (cond
+                                    (symbol? (first x))
+                                    (if-let [f (symbol->f (first x))]
+                                      f
+                                      (throw
+                                        (ex-info
+                                          (str "Got null for function looking up symbol: "
+                                               (first x))
+                                          {})))
 
-                                (ifn? (first x))
-                                (first x)
+                                    (ifn? (first x))
+                                    (first x)
 
-                                :else
-                                (throw (ex-info (str "Unsupported callable: " (pr-str (first x)))
-                                                {::callable (first x)
-                                                 ::form x}))))
-                  #?(:cljs (rest x)
-                     :default (map (fn [x] (if (symbol? x)
-                                             (requiring-resolve (namespace-symbol x))
-                                             x))
-                                   (rest x))))
+                                    :else
+                                    (throw (ex-info (str "Unsupported callable: " (pr-str (first x)))
+                                                    {::callable (first x)
+                                                     ::form x}))))
+                      #?(:cljs (rest x)
+                         :default (map (fn [x]
+                                         (if (symbol? x)
+                                           (requiring-resolve (namespace-symbol x))
+                                           (get-value x)))
+                                       (rest x)))))
 
-           (blocked-eval? x)
-           (get-value x)
+             (blocked-eval? x)
+             (get-value x)
 
-           :else
-           x))
-       form)))
+             :else
+             x))
+         form))))
   ([form implicit-target]
    (evaluate-pseudo-clojure
      (if (or (keyword? form) (symbol? form) (fn? form))
