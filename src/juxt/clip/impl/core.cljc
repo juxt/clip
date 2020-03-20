@@ -178,8 +178,7 @@
        get-value
        (walk/postwalk
          (fn [x]
-           (cond
-             (seq? x)
+           (if (seq? x)
              (prevent-eval
                (apply #?(:cljs (first x)
                          :default (cond
@@ -206,11 +205,7 @@
                                            (get-value x)))
                                        (rest x)))))
 
-             (blocked-eval? x)
-             (get-value x)
-
-             :else
-             x))
+             (get-value x)))
          form))))
   ([form implicit-target]
    (evaluate-pseudo-clojure
