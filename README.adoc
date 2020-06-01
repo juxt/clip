@@ -282,6 +282,8 @@ Usually you will have such a function defined in another namespace that takes a 
 (set-init! #(app.system/system-config :dev))
 ----
 
+==== Roll your own
+
 Alternatively you can roll your own Reloaded workflow quite easily, but you will miss out on convenient features in the built-in one like auto-cleanup.
 
 [source,clojure]
@@ -303,6 +305,23 @@ Alternatively you can roll your own Reloaded workflow quite easily, but you will
 (defn reset []
   (stop)
   (refresh :after 'user/go))
+----
+
+==== Async executors
+
+If you're using an async executor with the repl namespace, you may need to make it sync.
+Out of the box, the repl namespace will do it's best to work with anything supported by `deref`.
+If you need to override the deref that the repl namespace uses, you can supply a symbol or function in the key `:juxt.clip.repl/deref`.
+It should take one argument: the system to deref.
+
+You won't need to tweak this for Promesa or Manifold.
+
+[source,clojure]
+----
+(set-init!
+  (constantly {:executor juxt.clip.awkward-async/exec
+               :juxt.clip.repl/deref some.ns.awkard-async/deref
+               …}))
 ----
 
 === ClojureScript
