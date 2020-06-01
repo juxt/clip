@@ -2,37 +2,40 @@
   (:require
     [clojure.test :refer [deftest is are]]
     [juxt.clip.core :as clip]
+    [juxt.clip.promesa]
+    [juxt.clip.manifold]
     [clojure.edn :as edn]))
 
 (deftest start
-  (is (= {:foo 1 :bar 2}
-         (clip/start
-           {:components
-            {:foo {:start 1}
-             :bar {:start '(inc (clip/ref :foo))}}})))
+  (are [expected start-arg]
+       (do
+         (is (= expected (clip/start start-arg)))
+         (is (= expected @(clip/start (assoc start-arg :executor juxt.clip.promesa/exec))))
+         (is (= expected @(clip/start (assoc start-arg :executor juxt.clip.manifold/exec)))))
+       {:foo 1 :bar 2}
+       {:components
+        {:foo {:start 1}
+         :bar {:start '(inc (clip/ref :foo))}}}
 
-  (is (= {nil 1 :bar 2}
-         (clip/start
-           {:components
-            {nil {:start 1}
-             :bar {:start '(inc (clip/ref nil))}}})))
-
-  (is (= {:foo 1 :bar 3}
-         (clip/start
-           {:components
-            {:foo {:start 1
-                   :resolve inc}
-             :bar {:start '(inc (clip/ref :foo))}}})))
-  
-  (is (= {:foo 1 :bar 3 :baz 4}
-         (clip/start
-           {:components
-            {:foo {:start 1
-                   :resolve inc}
-             :bar {:start '(inc (clip/ref :foo))}
-             :baz {:start (clip/with-deps
-                            [{:keys [foo bar]}]
-                            (+ foo bar))}}}))))
+       {nil 1 :bar 2}
+       {:components
+        {nil {:start 1}
+         :bar {:start '(inc (clip/ref nil))}}}
+       
+       {:foo 1 :bar 3}
+       {:components
+        {:foo {:start 1
+               :resolve inc}
+         :bar {:start '(inc (clip/ref :foo))}}}
+       
+       {:foo 1 :bar 3 :baz 4}
+       {:components
+        {:foo {:start 1
+               :resolve inc}
+         :bar {:start '(inc (clip/ref :foo))}
+         :baz {:start (clip/with-deps
+                        [{:keys [foo bar]}]
+                        (+ foo bar))}}}))
 
 (deftest start-graph-ex
   (is (thrown? Throwable
