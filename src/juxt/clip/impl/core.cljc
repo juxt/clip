@@ -337,9 +337,7 @@
 (defn stopping-f
   [[k {:keys [stop]}]]
   (fn [rf acc]
-    (stop! (get acc k) stop)
-    (-> acc
-        (rf k (stop! (get acc k) stop)))))
+    (rf acc k (stop! (get acc k) stop))))
 
 (defn exec-queue
   ([q] (exec-queue q {}))
