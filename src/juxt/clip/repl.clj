@@ -54,11 +54,9 @@
 
 (defn- ->deref
   [deref]
-  #?(:cljs deref
-     :default
-     (if (fn? deref)
-       deref
-       (requiring-resolve deref))))
+  (if (fn? deref)
+    deref
+    (requiring-resolve deref)))
 
 (defn set-init!
   "Set the initializer to init-fn.  Should be a function which takes no
