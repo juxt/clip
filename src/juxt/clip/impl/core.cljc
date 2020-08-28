@@ -174,8 +174,7 @@
    (let [form (if (or (keyword? form) (symbol? form) (fn? form))
                 (list form)
                 form)]
-     (walk/postwalk
-       get-value
+     (get-value
        (walk/postwalk
          (fn [x]
            (if (seq? x)
@@ -204,8 +203,7 @@
                                            (requiring-resolve (namespace-symbol x))
                                            (get-value x)))
                                        (rest x)))))
-
-             (get-value x)))
+             (walk/postwalk get-value x)))
          form))))
   ([form implicit-target]
    (evaluate-pseudo-clojure

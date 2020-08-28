@@ -116,7 +116,8 @@
        '{foo 2} {'foo (list inc 1)}
        '{foo 2} (edn/read-string (pr-str '{foo (inc 1)}))
        'foo '(symbol "foo")
-       "foo" '(str (symbol "foo")))
+       "foo" '(str (symbol "foo"))
+       {:x 2} (list identity {:x (list inc 1)}))
   (are [x y z] (= x (::foo (clip/start {:components {::init {:start z
                                                              :resolve y}
                                                      ::foo {:start (clip/ref ::init)}}})))
