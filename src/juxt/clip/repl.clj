@@ -17,8 +17,8 @@
   [system]
   (when system
     (let [{::keys [deref] :as system-config} (::system-config (meta system))]
-      (deref (clip/stop system-config system))
-      system)))
+      (deref (clip/stop system-config system))))
+  nil)
 
 (defn- start-system
   [system-config]
