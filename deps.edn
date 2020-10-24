@@ -4,8 +4,8 @@
   {:extra-paths ["dev" "test"]
    :extra-deps
    {funcool/promesa {:mvn/version "4.0.2"}
-    manifold {:mvn/version "0.1.8"}
-    yada {:mvn/version "1.2.15.1"}
+    manifold/manifold {:mvn/version "0.1.8"}
+    yada/yada {:mvn/version "1.2.15.1"}
     com.datomic/datomic-free {:mvn/version "0.9.5697"}
     org.clojure/tools.namespace {:mvn/version "0.3.1"}}}
   :pack
@@ -30,7 +30,7 @@
                       {:git/url "https://github.com/cognitect-labs/test-runner.git"
                        :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}
                       funcool/promesa {:mvn/version "4.0.2"}
-                      manifold {:mvn/version "0.1.8"}}
+                      manifold/manifold {:mvn/version "0.1.8"}}
          :main-opts ["-m" "cognitect.test-runner"]}
   :test-gen {:extra-paths ["test-gen"]
              :extra-deps {org.clojure/test.check {:mvn/version "1.1.0"}}
