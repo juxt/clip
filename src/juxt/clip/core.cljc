@@ -145,6 +145,7 @@
                                (= 'clojure.core/get (first x))))
                         (map second (partition 2 (destructure [dep-binding nil])))))]
        `(vary-meta
+          ;; https://clojure.atlassian.net/browse/CLJ-2539
           ^::fix (fn self# ~(or args [])
                    (let [~dep-binding
                          (zipmap ~deps
