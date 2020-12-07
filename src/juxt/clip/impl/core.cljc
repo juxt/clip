@@ -144,7 +144,7 @@
   [x]
   (satisfies? IPreventEval x))
 
-(defn- get-value
+(defn get-value
   [x]
   (loop [x x]
     (if (blocked-eval? x)
@@ -219,6 +219,18 @@
     x))
 
 (def ^:dynamic *running-system*)
+(def ^:dynamic *components*)
+
+(defn resolve-ref-to
+  [to components value]
+  (cond->> (prevent-eval value)
+
+    (get-in components [to :resolve])
+    (evaluate-pseudo-clojure
+      (get-in components [to :resolve]))
+
+    (get-in components [to :resolve])
+    prevent-eval))
 
 (defn resolve-refs
   [x components running-system]
@@ -305,7 +317,8 @@
     (fn [rf acc]
       (rf acc
           k
-          (binding [*running-system* acc]
+          (binding [*running-system* acc
+                    *components* components]
             (evaluate-pseudo-clojure
               (resolve-refs start components acc)))))))
 
@@ -314,7 +327,8 @@
   (fn [[_ {:keys [pre-start]}]]
     (fn [_ acc]
       (when pre-start
-        (binding [*running-system* acc]
+        (binding [*running-system* acc
+                  *components* components]
           (evaluate-pseudo-clojure
             (resolve-refs pre-start components acc))))
       acc)))
@@ -324,7 +338,8 @@
   (fn [[k {:keys [post-start]}]]
     (fn [_ acc]
       (when post-start
-        (binding [*running-system* acc]
+        (binding [*running-system* acc
+                  *components* components]
           (evaluate-pseudo-clojure
             (-> post-start
                 (resolve-refs components acc)

@@ -27,8 +27,16 @@
         {:foo {:start 1
                :resolve inc}
          :bar {:start '(inc (clip/ref :foo))}}}
+
+       {:foo 1 :baz 2}
+       {:components
+        {:foo {:start 1
+               :resolve inc}
+         :baz {:start (clip/with-deps
+                        [{:keys [foo]}]
+                        foo)}}}
        
-       {:foo 1 :bar 3 :baz 4}
+       {:foo 1 :bar 3 :baz 5}
        {:components
         {:foo {:start 1
                :resolve inc}

@@ -146,8 +146,16 @@
                         (map second (partition 2 (destructure [dep-binding nil])))))]
        `(vary-meta
           ^::fix (fn self# ~(or args [])
-                   (let [~dep-binding (select-keys impl/*running-system*
-                                                   ~deps)]
+                   (let [~dep-binding
+                         (zipmap ~deps
+                                 (map
+                                   (fn [k#]
+                                     (impl/get-value
+                                       (impl/resolve-ref-to
+                                         k#
+                                         impl/*components*
+                                         (get impl/*running-system* k#))))
+                                   ~deps))]
                      ~@body))
           assoc
           ::deps
