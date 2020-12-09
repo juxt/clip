@@ -92,3 +92,10 @@
   []
   (stop)
   (tns.repl/refresh :after `start))
+
+(defn reset-all
+  "Stop the running system, refresh-all using tools.namespace, and then start
+  the new system."
+  []
+  (stop)
+  (tns.repl/refresh-all :after `start))
