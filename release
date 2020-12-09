@@ -1,7 +1,3 @@
 #!/usr/bin/env bash
 
-output="clip.jar"
-
-clojure -A:garamond -p
-clojure -A:pack mach.pack.alpha.skinny --no-libs --project-path clip.jar
 mvn deploy:deploy-file "-Dfile=clip.jar" -DrepositoryId=clojars -Durl=https://clojars.org/repo -DpomFile=pom.xml

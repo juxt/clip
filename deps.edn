@@ -8,17 +8,11 @@
     yada/yada {:mvn/version "1.2.15.1"}
     com.datomic/datomic-free {:mvn/version "0.9.5697"}
     org.clojure/tools.namespace {:mvn/version "0.3.1"}}}
-  :pack
-  {:extra-deps {pack/pack.alpha
-                {:git/url "https://github.com/juxt/pack.alpha.git"
-                 :sha "2769a6224bfb938e777906ea311b3daf7d2220f5"}}
-   :main-opts ["-m"]}
-
-  :garamond
-  {:main-opts ["-m" "garamond.main"]
-   :extra-deps {com.workframe/garamond
-                {:git/url "https://github.com/SevereOverfl0w/garamond.git"
-                 :sha "25b162c759090584d881a4f945144d8d7c06dbfd"}}}
+  :jar
+  {:replace-deps {pack/pack.alpha
+                  {:git/url "https://github.com/juxt/pack.alpha.git"
+                   :sha "2769a6224bfb938e777906ea311b3daf7d2220f5"}}
+   :main-opts ["-m" "mach.pack.alpha.skinny" "--no-libs" "--project-path" "clip.jar"]}
 
   :cljs-repl
   {:extra-deps
