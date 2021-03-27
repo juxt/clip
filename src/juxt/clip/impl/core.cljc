@@ -177,7 +177,11 @@
      (get-value
        (walk/postwalk
          (fn [x]
-           (if (seq? x)
+           (cond
+             (and (symbol? x) (not= \. (first (str x))))
+             (requiring-resolve (namespace-symbol x))
+
+             (seq? x)
              (prevent-eval
                (apply #?(:cljs (first x)
                          :default (cond
@@ -203,6 +207,7 @@
                                            (requiring-resolve (namespace-symbol x))
                                            (get-value x)))
                                        (rest x)))))
+             :else
              (walk/postwalk get-value x)))
          form))))
   ([form implicit-target]

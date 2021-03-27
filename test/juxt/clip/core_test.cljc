@@ -118,11 +118,11 @@
        [1 2 3 4 5] '(map inc (range 5))
        [1 2 3 4 5] `(map inc (range 5))
        [inc] [inc]
-       ['inc] ['inc]
+       [#'inc] ['inc]
        [2] [(list inc 1)]
        {:foo 2} {:foo (list inc 1)}
-       '{foo 2} {'foo (list inc 1)}
-       '{foo 2} (edn/read-string (pr-str '{foo (inc 1)}))
+       '{foo 2} {'(symbol "foo") (list inc 1)}
+       '{foo 2} (edn/read-string (pr-str '{(symbol "foo") (inc 1)}))
        'foo '(symbol "foo")
        "foo" '(str (symbol "foo"))
        {:x 2} (list identity {:x (list inc 1)}))
