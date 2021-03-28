@@ -178,8 +178,9 @@
        (walk/postwalk
          (fn [x]
            (cond
-             (and (symbol? x) (not= \. (first (str x))))
-             (requiring-resolve (namespace-symbol x))
+             #?@(:cljs []
+                 :default [(and (symbol? x) (not= \. (first (str x))))
+                           (requiring-resolve (namespace-symbol x))])
 
              (seq? x)
              (prevent-eval
