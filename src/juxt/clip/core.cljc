@@ -30,16 +30,27 @@
        (requiring-resolve executor))))
 
 (defn- execute
-  [system-config phase default-fs derive-init]
-  (let [{:keys [components executor]
-         :or {executor impl/exec-queue}} system-config
-        executor (->executor executor)
-        [_ component-chain] (safely-derive-parts components derive-init)]
-    (executor
-      (for [component component-chain
-            xf (get-in system-config [:actions phase] default-fs)
-            :let [f (xf components)]]
-        (f component)))))
+  ([system-config phase default-fs derive-init]
+   (let [{:keys [components executor]
+          :or {executor impl/exec-queue}} system-config
+         executor (->executor executor)
+         [_ component-chain] (safely-derive-parts components derive-init)]
+     (executor
+       (for [component component-chain
+             xf (get-in system-config [:actions phase] default-fs)
+             :let [f (xf components)]]
+         (f component)))))
+  ([system-config phase default-fs derive-init init]
+   (let [{:keys [components executor]
+          :or {executor impl/exec-queue}} system-config
+         executor (->executor executor)
+         [_ component-chain] (safely-derive-parts components derive-init)]
+     (executor
+       (for [component component-chain
+             xf (get-in system-config [:actions phase] default-fs)
+             :let [f (xf components)]]
+         (f component))
+       init))))
 
 (defn start
   "Takes a system config to start.  Returns a running system where the keys map
