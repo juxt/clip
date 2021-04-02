@@ -147,7 +147,8 @@
        1 0 'inc
        1 {:foo 1} :foo
        (list 1 2 3) (list 1 2 3) identity
-       (list 1 2 3) (list 1 2 3) '(identity this))
+       (list 1 2 3) (list 1 2 3) '(identity this)
+       1 {:foo (fn [] 1)} '((:foo this)))
   (is
     (= (list 1 2 3)
        (::foo (clip/start
