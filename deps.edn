@@ -4,8 +4,9 @@
   {:extra-paths ["dev" "test"]
    :extra-deps
    {funcool/promesa {:mvn/version "4.0.2"}
-    manifold/manifold {:mvn/version "0.1.8"}
+    manifold/manifold {:mvn/version "0.1.9-alpha4"}
     yada/yada {:mvn/version "1.2.15.1"}
+    aleph/aleph {:mvn/version "0.4.7-alpha7"}
     com.datomic/datomic-free {:mvn/version "0.9.5697"}
     org.clojure/tools.namespace {:mvn/version "0.3.1"}}}
   :jar
