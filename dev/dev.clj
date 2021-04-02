@@ -2,7 +2,8 @@
   (:require
     [datomic.api :as d]
     [yada.yada :as yada]
-    [juxt.clip.core :as h]))
+    [juxt.clip.core :as h]
+    [juxt.clip.repl :as repl]))
 
 (defn seed-conn
   [conn]
@@ -55,4 +56,9 @@
     rf-system)
 
   (throw (ex-info "foo" {}))
+
+  (println (str "http://localhost:" (:port (:http repl/system))))
+
+  (repl/set-init! #(deref #'system-config))
+  (repl/start)
   )
