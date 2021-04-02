@@ -128,29 +128,6 @@
         (sccs (system-dependency-graph bad-system))
         (system-dependency-graph bad-system)))))
 
-(defprotocol IPreventEval
-  (-get-value [this] "Return value that has been blocked from evaluation"))
-
-(defn- prevent-eval
-  [x]
-  (reify
-    IPreventEval
-    (-get-value [_] x)
-    Object
-    (toString [_]
-      (str "#blocked-eval [" (.toString x) "]"))))
-
-(defn- blocked-eval?
-  [x]
-  (satisfies? IPreventEval x))
-
-(defn get-value
-  [x]
-  (loop [x x]
-    (if (blocked-eval? x)
-      (recur (-get-value x))
-      x)))
-
 (defn namespace-symbol
   "Returns symbol unchanged if it has a namespace, or with clojure.core as it's
   namespace otherwise."
@@ -169,113 +146,55 @@
           (into-array Object %&))
        (requiring-resolve (namespace-symbol sym)))))
 
-(defn evaluate-pseudo-clojure
-  ([form]
-   (let [form (if (or (keyword? form) (symbol? form) (fn? form))
-                (list form)
-                form)]
-     (get-value
-       (walk/postwalk
-         (fn [x]
-           (cond
-             #?@(:cljs []
-                 :default [(and (symbol? x) (not= \. (first (str x))))
-                           (requiring-resolve (namespace-symbol x))])
+(defn metacircular-evaluator
+  [form env]
+  (let [form (if
+               (or (keyword? form) (symbol? form) (fn? form))
+               (if (contains? env 'this)
+                 (list form 'this)
+                 (list form))
+               form)]
+    (walk/postwalk
+      (fn [x]
+        (try
+          (cond
+            (and (symbol? x) (contains? env x))
+            (get env x)
 
-             (seq? x)
-             (prevent-eval
-               (apply #?(:cljs (first x)
-                         :default (cond
-                                    (symbol? (first x))
-                                    (if-let [f (symbol->f (first x))]
-                                      f
-                                      (throw
-                                        (ex-info
-                                          (str "Got null for function looking up symbol: "
-                                               (first x))
-                                          {})))
 
-                                    (ifn? (first x))
-                                    (first x)
+            #?@(:cljs []
+                :default [(and (symbol? x)
+                               (requiring-resolve (namespace-symbol x)))
+                          (requiring-resolve (namespace-symbol x))])
 
-                                    :else
-                                    (throw (ex-info (str "Unsupported callable: " (pr-str (first x)))
-                                                    {::callable (first x)
-                                                     ::form x}))))
-                      #?(:cljs (rest x)
-                         :default (map (fn [x]
-                                         (if (symbol? x)
-                                           (requiring-resolve (namespace-symbol x))
-                                           (get-value x)))
-                                       (rest x)))))
-             :else
-             (walk/postwalk get-value x)))
-         form))))
-  ([form implicit-target]
-   (evaluate-pseudo-clojure
-     (if (or (keyword? form) (symbol? form) (fn? form))
-       (list form (prevent-eval implicit-target))
-       form))))
+            #?@(:clj [(and (symbol? x) (= \. (first (str x))))
+                      #(clojure.lang.Reflector/invokeInstanceMethod
+                                     %1
+                                     (subs (str x) 1)
+                                     (into-array Object %&))]
+                :default [])
 
-(defn resolver
-  [x p? lookup]
-  (walk/postwalk
-    (fn [x]
-      (if (p? x) (prevent-eval (lookup x)) x))
-    x))
+            (symbol? x)
+            (throw (ex-info (str "Unable to resolve symbol " x)
+                            {:form form
+                             :expr x}))
+
+            (seq? x)
+            (apply (first x) (rest x))
+
+            :else x)
+          (catch Exception e
+            (throw (ex-info (str "Unable to evaluate form " (pr-str x)) {:form x} e)))))
+      form)))
 
 (def ^:dynamic *running-system*)
 (def ^:dynamic *components*)
-
-(defn resolve-ref-to
-  [to components value]
-  (cond->> (prevent-eval value)
-
-    (get-in components [to :resolve])
-    (evaluate-pseudo-clojure
-      (get-in components [to :resolve]))
-
-    (get-in components [to :resolve])
-    prevent-eval))
-
-(defn resolve-refs
-  [x components running-system]
-  (walk/postwalk
-    (fn [x]
-      (cond
-        (ref? x)
-        (let [to (ref-to x)]
-          (cond->> (prevent-eval (get running-system to))
-
-            (get-in components [to :resolve])
-            (evaluate-pseudo-clojure
-              (get-in components [to :resolve]))
-
-            (get-in components [to :resolve])
-            prevent-eval))
-
-        #_#_(:juxt.clip.core/deps (meta x))
-        (vary-meta x
-                   assoc
-                   :juxt.clip.core/resolved-deps
-                   (zipmap (:juxt.clip.core/deps (meta x))
-                           ;; TODO: :resolve
-                           (map
-                             #(get running-system %)
-                             (:juxt.clip.core/deps (meta x)))))
-
-        :else
-        x))
-    x))
 
 (defn stop!
   [inst stop-code]
   (cond
     stop-code
-    (evaluate-pseudo-clojure
-      (-> stop-code
-          (resolver #(= 'this %) (constantly inst)))
-      inst)
+    (metacircular-evaluator stop-code {'this inst})
     #?@(:clj
          [(isa? (class inst) java.io.Closeable)
           (.close ^java.io.Closeable inst)])))
@@ -317,6 +236,20 @@
            8 #{7 8}}]
     (cycles (sccs g) g)))
 
+(defn clip-ref-fn
+  [components running-system]
+  (let [resolve-ref
+        ;; TODO: there's some trick to having a self-referential memoized fn
+
+        ;; TODO: memoize so we only run resolve once for each component, per xf
+        (fn resolve-ref [to]
+          (if-let [resolve-code (get-in components [to :resolve])]
+            (metacircular-evaluator resolve-code {'this (get running-system to)
+                                                  'clip/ref resolve-ref})
+            (get running-system to)))]
+    (fn [to]
+      (resolve-ref to))))
+
 (defn starting-f
   [components]
   (fn [[k {:keys [start]}]]
@@ -325,8 +258,7 @@
           k
           (binding [*running-system* acc
                     *components* components]
-            (evaluate-pseudo-clojure
-              (resolve-refs start components acc)))))))
+            (metacircular-evaluator start {'clip/ref (clip-ref-fn components acc)}))))))
 
 (defn pre-starting-f
   [components]
@@ -335,8 +267,9 @@
       (when pre-start
         (binding [*running-system* acc
                   *components* components]
-          (evaluate-pseudo-clojure
-            (resolve-refs pre-start components acc))))
+          (metacircular-evaluator
+            pre-start
+            {'clip/ref (clip-ref-fn components acc)})))
       acc)))
 
 (defn post-starting-f
@@ -346,11 +279,10 @@
       (when post-start
         (binding [*running-system* acc
                   *components* components]
-          (evaluate-pseudo-clojure
-            (-> post-start
-                (resolve-refs components acc)
-                (resolver #(= 'this %) (constantly (get acc k))))
-            (get acc k))))
+          (metacircular-evaluator
+            post-start
+            {'clip/ref (clip-ref-fn components acc)
+             'this (get acc k)})))
       acc)))
 
 (defn stopping-f
