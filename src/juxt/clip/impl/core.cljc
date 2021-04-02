@@ -198,6 +198,9 @@
                                     (ifn? (first x))
                                     (first x)
 
+                                    (ifn? (get-value (first x)))
+                                    (get-value (first x))
+
                                     :else
                                     (throw (ex-info (str "Unsupported callable: " (pr-str (first x)))
                                                     {::callable (first x)
