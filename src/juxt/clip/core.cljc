@@ -67,8 +67,9 @@
     ;; Only stop keys that are present, allows fixing partially started systems
     (update system-config :components select-keys (keys running-system))
     :stop
-    [impl/stopping-f]
-    ()))
+    [(fn [_] impl/stopping-f)]
+    ()
+    running-system))
 
 (comment
   (start
