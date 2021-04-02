@@ -2,7 +2,8 @@
   "REPL utilities for running a system during development."
   (:require
     [clojure.tools.namespace.repl :as tns.repl]
-    [juxt.clip.core :as clip]))
+    [juxt.clip.core :as clip]
+    [juxt.clip.impl.core :as impl]))
 
 (tns.repl/disable-reload!)
 
@@ -62,7 +63,17 @@
   "Set the initializer to init-fn.  Should be a function which takes no
   arguments and returns the system config to use for the REPL."
   [init-fn]
-  (alter-var-root #'initializer (constantly #(update (merge {::deref force*} (init-fn)) ::deref ->deref))))
+  (alter-var-root #'initializer
+                  (constantly
+                    (fn []
+                      (let [{:keys [reloads] :as system-config} (init-fn)]
+                        (-> (merge {::deref force*
+                                    :actions {:start [impl/pre-starting-f
+                                                      impl/starting-f
+                                                      (impl/reloading-f reloads)
+                                                      impl/post-starting-f]}}
+                                   system-config)
+                            (update ::deref ->deref)))))))
 
 (defn start
   "Stops any existing systems and starts a new one calling the initializer set
@@ -99,3 +110,8 @@
   []
   (stop)
   (tns.repl/refresh-all :after `start))
+
+(defn relodable-fn
+  [fn-fn]
+  (fn reloadable-wrapper [& args]
+    (apply (fn-fn) args)))

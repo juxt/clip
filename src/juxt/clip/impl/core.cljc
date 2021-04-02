@@ -328,6 +328,29 @@
             (evaluate-pseudo-clojure
               (resolve-refs start components acc)))))))
 
+(defn reloading-f
+  [reloads]
+  (fn [components]
+    (fn [[k {:keys [start]}]]
+      (fn [rf acc]
+        (let [started (get acc k)
+              make-v (fn []
+                       (binding [*running-system* acc
+                                 *components* components]
+                         (evaluate-pseudo-clojure
+                           (resolve-refs start components acc))))
+              reloader (or (get reloads k)
+                           ;; TODO, implement a cache like clojure.lang.MultiFn?
+                           (reduce-kv
+                             (fn [_ k reloader]
+                               (when (instance? k started)
+                                 (reduced reloader)))
+                             nil
+                             reloads))]
+          (if reloader
+            (rf acc k (reloader make-v))
+            acc))))))
+
 (defn pre-starting-f
   [components]
   (fn [[_ {:keys [pre-start]}]]
