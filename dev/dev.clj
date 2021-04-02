@@ -31,7 +31,9 @@
     :http {:start `(yada/listener (clip/ref :handler))
            :stop '((:close this))
            :resolve :server}
-    :foo {:start '(clip/ref :http)}}})
+    :foo {:start '(clip/ref :http)}}
+   :reloads
+   `{yada.resource.Resource juxt.clip.repl.yada/reloadable-resource}})
 
 (def rf-system
   (#'h/exec-queue

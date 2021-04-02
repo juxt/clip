@@ -2,7 +2,8 @@
   "REPL utilities for running a system during development."
   (:require
     [clojure.tools.namespace.repl :as tns.repl]
-    [juxt.clip.core :as clip]))
+    [juxt.clip.core :as clip]
+    [juxt.clip.impl.core :as impl]))
 
 (tns.repl/disable-reload!)
 
@@ -20,12 +21,79 @@
       (deref (clip/stop system-config system))))
   nil)
 
+(defn- resolve-reloader
+  [x]
+  (if (symbol? x)
+    (requiring-resolve x)
+    x))
+
+(defmacro ^:private get-macro
+  "Like get, but not-found is only evaluated if k is not present in m"
+  [map key not-found]
+  `(let [m# ~map
+         k# ~key]
+     (if-let [[_# v#] (find m# k#)]
+       v#
+       ~not-found)))
+
+(defn- reloading-f
+  [reloads components]
+  (fn [[k {:keys [start]}]]
+    (fn [rf acc]
+      (let [started (get acc k)
+            make-v (fn []
+                     (binding [impl/*running-system* acc
+                               impl/*components* components]
+                       (impl/metacircular-evaluator
+                         start
+                         {'clip/ref (impl/clip-ref-fn components acc)})))
+            reloader
+            (resolve-reloader
+              (get-macro reloads
+                         k
+                         (reduce-kv
+                           (fn [_ k reloader]
+                             (when (and (class? k) (instance? k started))
+                               (reduced reloader)))
+                           nil
+                           reloads)))]
+        (if reloader
+          (rf acc k (reloader make-v))
+          acc)))))
+
+(defn relodable-fn
+  "ALPHA: A reload function suitable for use with clojure.lang.Fn in :reloads."
+  [fn-fn]
+  (fn reloadable-wrapper [& args]
+    (apply (fn-fn) args)))
+
+(defn- repl-start
+  "Like clip/start, but has reload functionality built-in"
+  [system-config]
+  (let [{:keys [components executor reloads]
+         :or {executor impl/exec-queue}} system-config
+        executor (#'clip/->executor executor)
+        [_ component-chain] (#'clip/safely-derive-parts components [])]
+    (executor
+      (for [component component-chain
+            f [(impl/pre-starting-f components)
+               (impl/starting-f components)
+               (reloading-f (zipmap (map (fn [x]
+                                           (if (symbol? x)
+                                             (Class/forName (str x))
+                                             x))
+                                         (keys reloads))
+                                    (vals reloads))
+                            components)
+               (impl/post-starting-f components)]]
+        (f component)))))
+
 (defn- start-system
   [system-config]
   (let [{::keys [deref]} system-config]
     (vary-meta
       (try
-        (deref (clip/start system-config))
+        (deref (repl-start system-config))
         (catch Throwable t
           (if-let [system (::clip/system (ex-data t))]
             ;; Partially started system found, we should call stop on it to clean
