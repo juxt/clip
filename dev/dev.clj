@@ -36,27 +36,7 @@
    :reloads
    `{yada.resource.Resource juxt.clip.repl.yada/reloadable-resource}})
 
-(def rf-system
-  (#'h/exec-queue
-    (for [f [(#'h/pre-starting-f system-config)
-             (#'h/starting-f system-config)
-             (#'h/post-starting-f system-config)]
-          component (#'h/component-chain system-config)]
-      (f component))))
-
 (comment
-  (#'h/run
-    (comp #'h/stopping)
-    system
-    system-config
-    (#'h/reverse-component-chain system-config))
-
-  (#'h/exec-queue
-    (map #'h/stopping-f (#'h/reverse-component-chain system-config))
-    rf-system)
-
-  (throw (ex-info "foo" {}))
-
   (println (str "http://localhost:" (:port (:http repl/system))))
 
   (repl/set-init! #(deref #'system-config))
