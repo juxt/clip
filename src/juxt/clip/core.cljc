@@ -29,6 +29,18 @@
        executor
        (requiring-resolve executor))))
 
+(defn- execute
+  [system-config phase default-fs derive-init]
+  (let [{:keys [components executor]
+         :or {executor impl/exec-queue}} system-config
+        executor (->executor executor)
+        [_ component-chain] (safely-derive-parts components derive-init)]
+    (executor
+      (for [component component-chain
+            xf (get-in system-config [:actions phase] default-fs)
+            :let [f (xf components)]]
+        (f component)))))
+
 (defn start
   "Takes a system config to start.  Returns a running system where the keys map
   to the started component.  Runs the :pre-start, :start and :post-start keys
@@ -41,16 +53,7 @@
   of requiring a code form, in addition the anaphoric variable `this` is
   available to refer to the started component."
   [system-config]
-  (let [{:keys [components executor]
-         :or {executor impl/exec-queue}} system-config
-        executor (->executor executor)
-        [_ component-chain] (safely-derive-parts components [])]
-    (executor
-      (for [component component-chain
-            f [(impl/pre-starting-f components)
-               (impl/starting-f components)
-               (impl/post-starting-f components)]]
-        (f component)))))
+  (execute system-config :start [impl/pre-starting-f impl/starting-f impl/post-starting-f] []))
 
 (defn stop
   "Takes a system config to stop.
@@ -60,15 +63,12 @@
   the target is AutoClosable then .close will be called on it, otherwise
   nothing."
   [system-config running-system]
-  (let [{:keys [components executor]
-         :or {executor impl/exec-queue}} system-config
-        executor (->executor executor)
-        [_ component-chain] (safely-derive-parts
-                              (select-keys components (keys running-system))
-                              ())]
-    (executor
-      (map impl/stopping-f component-chain)
-      running-system)))
+  (execute
+    ;; Only stop keys that are present, allows fixing partially started systems
+    (update system-config :components select-keys (keys running-system))
+    :stop
+    [impl/stopping-f]
+    ()))
 
 (comment
   (start
