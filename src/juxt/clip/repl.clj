@@ -41,12 +41,19 @@
   (fn [[k {:keys [start]}]]
     (fn [rf acc]
       (let [started (get acc k)
-            make-v (fn []
-                     (binding [impl/*running-system* acc
-                               impl/*components* components]
-                       (impl/metacircular-evaluator
-                         start
-                         {'clip/ref (impl/clip-ref-fn components acc)})))
+            make-v (fn
+                     []
+                     (try
+                       (binding [impl/*running-system* acc
+                                 impl/*components* components]
+                         (impl/metacircular-evaluator
+                           start
+                           {'clip/ref (impl/clip-ref-fn components acc)}))
+                       (catch Exception e
+                         (binding [*out* *err*]
+                           (println "Unable to reload" k "returning original value")
+                           (clojure.stacktrace/print-throwable e))
+                         started)))
             reloader
             (resolve-reloader
               (get-macro reloads
