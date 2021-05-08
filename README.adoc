@@ -437,5 +437,6 @@ Here's a minimal example system-config configured with aero:
 
 * link:https://github.com/juxt/clip-example[Official clip-example repo]
 * link:https://github.com/PrestanceDesign/todo-backend-clojure-reitit/tree/clip[Implementation of the Todo-Backend API spec,using Ring/Reitit, Clip and next-jdbc]
+* link:https://github.com/dharrigan/startrek[StarTrek, Clojure REST example project using reitit, next-jdbc and malli]
 
 Want to add one? Open an issue or pull request.
