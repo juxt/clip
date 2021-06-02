@@ -17,6 +17,11 @@
         {:foo {:start 1}
          :bar {:start '(inc (clip/ref :foo))}}}
 
+       {:foo 1 :bar 2}
+       {:components
+        {:foo {:start 1}
+         :bar {:start '(inc (juxt.clip.core/ref :foo))}}}
+
        {nil 1 :bar 2}
        {:components
         {nil {:start 1}
@@ -27,6 +32,12 @@
         {:foo {:start 1
                :resolve inc}
          :bar {:start '(inc (clip/ref :foo))}}}
+
+       {:foo 1 :bar 3}
+       {:components
+        {:foo {:start 1
+               :resolve inc}
+         :bar {:start '(inc (juxt.clip.core/ref :foo))}}}
 
        {:foo 1 :baz 2}
        {:components

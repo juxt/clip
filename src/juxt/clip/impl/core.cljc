@@ -245,7 +245,8 @@
         (fn resolve-ref [to]
           (if-let [resolve-code (get-in components [to :resolve])]
             (metacircular-evaluator resolve-code {'this (get running-system to)
-                                                  'clip/ref resolve-ref})
+                                                  'clip/ref resolve-ref
+                                                  'juxt.clip.core/ref resolve-ref})
             (get running-system to)))]
     (fn [to]
       (resolve-ref to))))
@@ -258,7 +259,10 @@
           k
           (binding [*running-system* acc
                     *components* components]
-            (metacircular-evaluator start {'clip/ref (clip-ref-fn components acc)}))))))
+            (metacircular-evaluator start
+                                    (let [ref-fn (clip-ref-fn components acc)]
+                                      {'clip/ref ref-fn
+                                       'juxt.clip.core/ref ref-fn})))))))
 
 (defn pre-starting-f
   [components]
@@ -269,7 +273,9 @@
                   *components* components]
           (metacircular-evaluator
             pre-start
-            {'clip/ref (clip-ref-fn components acc)})))
+            (let [ref-fn (clip-ref-fn components acc)]
+              {'clip/ref ref-fn
+               'juxt.clip.core/ref ref-fn}))))
       acc)))
 
 (defn post-starting-f
@@ -281,8 +287,10 @@
                   *components* components]
           (metacircular-evaluator
             post-start
-            {'clip/ref (clip-ref-fn components acc)
-             'this (get acc k)})))
+            (let [ref-fn (clip-ref-fn components acc)]
+              {'clip/ref ref-fn
+               'juxt.clip.core/ref ref-fn
+               'this (get acc k)}))))
       acc)))
 
 (defn stopping-f
