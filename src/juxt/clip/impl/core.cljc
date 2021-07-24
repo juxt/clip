@@ -183,7 +183,7 @@
             (apply (first x) (rest x))
 
             :else x)
-          (catch Exception e
+          (catch #?(:clj Exception :cljs js/Error) e
             (throw (ex-info (str "Unable to evaluate form " (pr-str x)) {:form x} e)))))
       form)))
 
