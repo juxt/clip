@@ -155,8 +155,8 @@
                                  (map
                                    (fn [k#]
                                      (if-let [resolve-code# (get-in impl/*components* [k# :resolve])]
-                                       (impl/metacircular-evaluator
-                                         resolve-code#
+                                       (impl/evaluator
+                                         (impl/metacircular-analyzer resolve-code# #{~''this})
                                          {~''this (get impl/*running-system* k#)})
                                        (get impl/*running-system* k#)))
                                    ~deps))]
