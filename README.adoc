@@ -191,7 +191,8 @@ In Clip, async is achieved by using alternative executors.
 Out of the box support is provided for link:https://github.com/funcool/promesa[promesa] and link:https://github.com/ztellman/manifold[manifold].
 Open an issue if you'd like to see support for another popular library.
 
-Executors are specified on your system, and can either be a symbol pointing at a executor or a function. 
+Executors are specified on your system and must be a function.
+`juxt.clip.edn/load` will convert your `:executor` from a symbol to a function.
 
 .Promesa Async Example
 ====
@@ -338,7 +339,8 @@ This macro will convert lists of code it finds into non-evaluated lists, which c
 === Use with EDN
 
 Clip works very well with EDN.
-In Clojure, Clip will automatically require & resolve any symbols in the EDN, so that `require` is not required.
+First, you must call `juxt.clip.edn/load` on your EDN system to produce a system Clip can understand.
+This will convert your EDN structure into a system compatible with juxt.clip.core functions by, e.g. converting `:executor` from a symbol to a function.
 
 It was designed to be used with a library such as link:https://github.com/juxt/aero[aero] in order to make dev/prod changes to your system.
 Here's a minimal example system-config configured with aero:

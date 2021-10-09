@@ -21,14 +21,6 @@
 
       [g (map #(find components (first %)) sccs)])))
 
-(defn- ->executor
-  [executor]
-  #?(:cljs executor
-     :default
-     (if (fn? executor)
-       executor
-       (requiring-resolve executor))))
-
 (defn start
   "Takes a system config to start.  Returns a running system where the keys map
   to the started component.  If provided, only the components in `component-ks`
@@ -44,7 +36,6 @@
   ([system-config component-ks]
    (let [{:keys [components executor]
           :or {executor impl/exec-queue}} system-config
-         executor (->executor executor)
          [_ component-chain] (safely-derive-parts components [] component-ks)]
      (executor
        (for [component component-chain
@@ -65,7 +56,6 @@
   [system-config running-system]
   (let [{:keys [components executor]
          :or {executor impl/exec-queue}} system-config
-        executor (->executor executor)
         [_ component-chain] (safely-derive-parts
                               (select-keys components (keys running-system))
                               ())]
