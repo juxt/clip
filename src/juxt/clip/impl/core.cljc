@@ -146,46 +146,68 @@
           (into-array Object %&))
        (requiring-resolve (namespace-symbol sym)))))
 
-(defn metacircular-evaluator
-  [form env]
+(defprotocol Evaluate
+  (evaluate [x env]))
+
+(extend-protocol Evaluate
+  Object
+  (evaluate [x _env] x)
+
+  nil
+  (evaluate [x _env] x))
+
+(defrecord Analyzed [f]
+  Evaluate
+  (evaluate [_this env]
+    (f env)))
+
+(defn metacircular-analyzer
+  [form locals]
   (let [form (if
                (or (keyword? form) (symbol? form) (fn? form))
-               (if (contains? env 'this)
+               (if (contains? locals 'this)
                  (list form 'this)
                  (list form))
                form)]
     (walk/postwalk
       (fn [x]
-        (try
-          (cond
-            (and (symbol? x) (contains? env x))
-            (get env x)
+        (cond
+          (and (symbol? x) (contains? locals x))
+          (->Analyzed (fn local-sym [env] (get env x)))
 
+          #?@(:cljs []
+              :default [(and (symbol? x)
+                             (requiring-resolve (namespace-symbol x)))
+                        (let [var (requiring-resolve (namespace-symbol x))]
+                          (->Analyzed (fn resolved-var [_env] var)))])
 
-            #?@(:cljs []
-                :default [(and (symbol? x)
-                               (requiring-resolve (namespace-symbol x)))
-                          (requiring-resolve (namespace-symbol x))])
-
-            #?@(:clj [(and (symbol? x) (= \. (first (str x))))
+          #?@(:clj [(and (symbol? x) (= \. (first (str x))))
+                    (let [method (subs (str x) 1)]
                       #(clojure.lang.Reflector/invokeInstanceMethod
-                                     %1
-                                     (subs (str x) 1)
-                                     (into-array Object %&))]
-                :default [])
+                         %1
+                         method
+                         (into-array Object %&)))]
+              :default [])
 
-            (symbol? x)
-            (throw (ex-info (str "Unable to resolve symbol " x)
-                            {:form form
-                             :expr x}))
+          (symbol? x)
+          (throw (ex-info (str "Unable to resolve symbol " x)
+                          {:form form
+                           :expr x
+                           :locals locals}))
 
-            (seq? x)
-            (apply (first x) (rest x))
-
-            :else x)
-          (catch #?(:clj Exception :cljs js/Error) e
-            (throw (ex-info (str "Unable to evaluate form " (pr-str x)) {:form x} e)))))
+          :else x))
       form)))
+
+(defn evaluator
+  ([analysis env]
+   (walk/postwalk
+     (fn  [x]
+       (if (seq? x)
+         (apply (first x) (rest x))
+         (evaluate x env)))
+     analysis))
+  ([analysis]
+   (evaluator analysis nil)))
 
 (def ^:dynamic *running-system*)
 (def ^:dynamic *components*)
@@ -194,7 +216,7 @@
   [inst stop-code]
   (cond
     stop-code
-    (metacircular-evaluator stop-code {'this inst})
+    (evaluator stop-code {'this inst})
     #?@(:clj
          [(isa? (class inst) java.io.Closeable)
           (.close ^java.io.Closeable inst)])))
@@ -244,9 +266,12 @@
         ;; TODO: memoize so we only run resolve once for each component, per xf
         (fn resolve-ref [to]
           (if-let [resolve-code (get-in components [to :resolve])]
-            (metacircular-evaluator resolve-code {'this (get running-system to)
-                                                  'clip/ref resolve-ref
-                                                  'juxt.clip.core/ref resolve-ref})
+            (evaluator
+              ;; TODO: This is BAD, this will not aot resolution code!
+              (metacircular-analyzer resolve-code '#{this clip/ref juxt.clip.core/ref})
+              {'this (get running-system to)
+               'clip/ref resolve-ref
+               'juxt.clip.core/ref resolve-ref})
             (get running-system to)))]
     (fn [to]
       (resolve-ref to))))
@@ -254,49 +279,57 @@
 (defn starting-f
   [components]
   (fn [[k {:keys [start]}]]
-    (fn [rf acc]
-      (rf acc
-          k
-          (binding [*running-system* acc
-                    *components* components]
-            (metacircular-evaluator start
-                                    (let [ref-fn (clip-ref-fn components acc)]
-                                      {'clip/ref ref-fn
-                                       'juxt.clip.core/ref ref-fn})))))))
+    (let [start-ana (metacircular-analyzer start '#{clip/ref juxt.clip.core/ref})]
+      (fn [rf acc]
+        (rf acc
+            k
+            (binding [*running-system* acc
+                      *components* components]
+              (evaluator start-ana
+                         (let [ref-fn (clip-ref-fn components acc)]
+                           {'clip/ref ref-fn
+                            'juxt.clip.core/ref ref-fn}))))))))
 
 (defn pre-starting-f
   [components]
   (fn [[_ {:keys [pre-start]}]]
-    (fn [_ acc]
-      (when pre-start
-        (binding [*running-system* acc
-                  *components* components]
-          (metacircular-evaluator
-            pre-start
-            (let [ref-fn (clip-ref-fn components acc)]
-              {'clip/ref ref-fn
-               'juxt.clip.core/ref ref-fn}))))
-      acc)))
+    (if pre-start
+      (let [pre-start-ana (metacircular-analyzer pre-start '#{clip/ref juxt.clip.core/ref})]
+        (fn [_ acc]
+          (binding [*running-system* acc
+                    *components* components]
+            (evaluator
+              pre-start-ana
+              (let [ref-fn (clip-ref-fn components acc)]
+                {'clip/ref ref-fn
+                 'juxt.clip.core/ref ref-fn})))))
+      (fn [_ acc] acc))))
 
 (defn post-starting-f
   [components]
   (fn [[k {:keys [post-start]}]]
-    (fn [_ acc]
-      (when post-start
-        (binding [*running-system* acc
-                  *components* components]
-          (metacircular-evaluator
-            post-start
-            (let [ref-fn (clip-ref-fn components acc)]
-              {'clip/ref ref-fn
-               'juxt.clip.core/ref ref-fn
-               'this (get acc k)}))))
-      acc)))
+    (if post-start
+      (let [post-start-ana (metacircular-analyzer
+                             post-start
+                             '#{clip/ref juxt.clip.core/ref this})]
+        (fn [_ acc]
+          (binding [*running-system* acc
+                    *components* components]
+            (evaluator
+              post-start-ana
+              (let [ref-fn (clip-ref-fn components acc)]
+                {'clip/ref ref-fn
+                 'juxt.clip.core/ref ref-fn
+                 'this (get acc k)})))
+          acc))
+      (fn [_ acc]
+        acc))))
 
 (defn stopping-f
   [[k {:keys [stop]}]]
-  (fn [rf acc]
-    (rf acc k (stop! (get acc k) stop))))
+  (let [stop-ana (some-> stop (metacircular-analyzer #{'this}))]
+    (fn [rf acc]
+      (rf acc k (stop! (get acc k) stop-ana)))))
 
 (defn exec-queue
   ([q] (exec-queue q {}))
