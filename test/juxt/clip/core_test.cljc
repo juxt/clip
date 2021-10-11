@@ -165,3 +165,81 @@
        (::foo (clip/start
                 {:components {::foo {:start (clip/ref ::bar)}
                               ::bar {:start '(list 1 2 3)}}})))))
+
+(deftest select
+  (are [x] (= x (clip/select x (keys (:components x))))
+
+       {:components {:a {:start 10}}}
+       {:components {:a {:start 10}} :executor 'foo}
+       {:components {:a {:start 10} :b {:start 10}}
+        :executor 'foo
+        :other-key true}
+       '{:components {:b {:start 10}
+                      :c {:start (inc (clip/ref :b))}}})
+
+  (is (= {:components {:a {:start 10}
+                       :b {:start (clip/ref :a)}}}
+         (clip/select
+           {:components {:a {:start 10}
+                         :b {:start (clip/ref :a)}}}
+           [:b])))
+
+  (is (= {:components {:a {:start 10}
+                        :b {:start (clip/ref :a)}}}
+         (clip/select
+           {:components {:a {:start 10}
+                         :b {:start (clip/ref :a)}
+                         :c {:start 20}}}
+           [:b])))
+
+  (is (= {:components {:a {:start 10}
+                       :e {:start (clip/ref :d)}
+                       :d {:start 30}}}
+         (clip/select
+           {:components {:a {:start 10}
+                         :b {:start (clip/ref :a)}
+                         :c {:start 20}
+                         :d {:start 30}
+                         :e {:start (clip/ref :d)}}}
+           [:a :e]))))
+
+(deftest partial-start
+  (is (= {:a 10}
+         (clip/start
+           {:components
+            {:a {:start 10}
+             :b {:start 20}}}
+           [:a])))
+
+  (is (= {:a 10
+          :b 11}
+         (clip/start
+           '{:components
+             {:a {:start 10}
+              :b {:start (inc (clip/ref :a))}}}
+           [:b])))
+
+  (is (= {:a 10
+          :b 11
+          :d 30
+          :e 29}
+         (clip/start
+           '{:components
+             {:a {:start 10}
+              :b {:start (inc (clip/ref :a))}
+              :c {:start 20}
+              :d {:start 30}
+              :e {:start (dec (clip/ref :d))}}}
+           [:b :e])))
+
+  (is (= {:a 10
+          :b 11
+          :c 20}
+         (clip/start
+           '{:components
+             {:a {:start 10}
+              :b {:start (inc (clip/ref :a))}
+              :c {:start 20}
+              :d {:start 30}
+              :e {:start (dec (clip/ref :d))}}}
+           [:b :c]))))

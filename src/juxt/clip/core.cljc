@@ -4,9 +4,11 @@
             [clojure.walk :as walk]))
 
 (defn- safely-derive-parts
-  [components init]
+  [components init & [ks]]
   (let [g (impl/system-dependency-graph components)
-        sccs (impl/sccs g init)]
+        sccs (if ks
+               (impl/sccs g init ks)
+               (impl/sccs g init))]
     (if-let [errors (seq (impl/dependency-errors sccs g))]
       (throw
         (ex-info
@@ -56,13 +58,15 @@
   as an implict target.  This means that a symbol on it's own will work instead
   of requiring a code form, in addition the anaphoric variable `this` is
   available to refer to the started component."
-  [system-config]
-  (let [{:keys [components executor chains]
-         :or {executor impl/exec-queue
-              chains (merge default-chains (:chains system-config))}} system-config
-        [_ component-chain] (safely-derive-parts components [])]
-    (executor
-      ((get chains :start) component-chain))))
+  ([system-config]
+   (start system-config (keys (:components system-config))))
+  ([system-config component-ks]
+   (let [{:keys [components executor chains]
+          :or {executor impl/exec-queue
+               chains (merge default-chains (:chains system-config))}} system-config
+         [_ component-chain] (safely-derive-parts components [] component-ks)]
+     (executor
+       ((get chains :start) component-chain)))))
 
 (comment
   (let [components {:a '{:pre-start (println "pre" 1)
@@ -180,3 +184,12 @@
           assoc
           ::deps
           ~deps))))
+
+(defn select
+  "Return system-config with only components & their transitive dependencies."
+  [system-config component-ks]
+  (update system-config
+          :components
+          (fn [components]
+            (let [[_ component-chain] (safely-derive-parts components () component-ks)]
+              (select-keys components (map key component-chain))))))

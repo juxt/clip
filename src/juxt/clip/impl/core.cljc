@@ -5,7 +5,8 @@
   "Returns a topologically sorted list of strongly connected components.
   Tarjan's algorithm."
   ([g] (sccs g []))
-  ([g sccs-init]
+  ([g sccs-init] (sccs g sccs-init (keys g)))
+  ([g sccs-init ks]
    (let [strong-connect
            (fn strong-connect [acc v]
              (let [acc (-> acc
@@ -53,7 +54,7 @@
          {:S ()
           :idx 0
           :sccs sccs-init}
-         (keys g))))))
+         ks)))))
 
 (defn cycles
   [sccs g]
