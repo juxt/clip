@@ -1,5 +1,5 @@
 (ns juxt.clip.core
-  (:refer-clojure :exclude [ref])
+  (:refer-clojure :exclude [ref require])
   (:require [juxt.clip.impl.core :as impl]
             [clojure.walk :as walk]))
 
@@ -20,6 +20,14 @@
            :sccs sccs}))
 
       [g (map #(find components (first %)) sccs)])))
+
+(defn require
+  "Load all namespaces used by this system.  Suitable for use during AOT."
+  [system-config]
+  (doall
+    (for [component (:components system-config)
+          f [impl/pre-starting-f impl/starting-f impl/post-starting-f impl/stopping-f]]
+      (f component))))
 
 (defn start
   "Takes a system config to start.  Returns a running system where the keys map

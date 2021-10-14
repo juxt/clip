@@ -420,6 +420,23 @@ When starting your application from -main there's a few considerations:
   @(promise))
 ----
 
+=== AOT compile namespaces
+
+You need to involve Clip in the AOT process in order to require any namespaces required by your system.
+
+[source,clojure]
+----
+(binding [*compile-files* true] ;; <1>
+  (-> ((requiring-resolve 'myapp.system/get-system)) ;; <2>
+      clip.edn/load ;; <3>
+      clip/require ;; <4>
+      ))
+----
+<1> Tell Clojure that when we require code, we'd like to AOT it.
+<2> We must require myapp.system inside of the `binding` otherwise it won't be AOT'd.
+<3> Optional, only do this if your system is in EDN.
+<4> This is what requires the namespaces used by your system.
+
 === Test systems
 
 Clip provides ways to start a subset of a system in order to make testing easier.
