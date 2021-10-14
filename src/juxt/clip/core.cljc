@@ -21,6 +21,17 @@
 
       [g (map #(find components (first %)) sccs)])))
 
+;; TODO: Do I like this, or is there something more conventional I could do?
+(def ^:private default-chains
+  {:start
+   (fn [component-chain]
+     (for [component component-chain
+           f [impl/pre-starting-f impl/starting-f impl/post-starting-f]]
+       (f component)))
+   :stop
+   (fn [component-chain]
+     (map impl/stopping-f component-chain))})
+
 (defn start
   "Takes a system config to start.  Returns a running system where the keys map
   to the started component.  Runs the :pre-start, :start and :post-start keys
