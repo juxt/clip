@@ -141,11 +141,7 @@
                          (zipmap ~deps
                                  (map
                                    (fn [k#]
-                                     (if-let [resolve-code# (get-in impl/*components* [k# :resolve])]
-                                       (impl/evaluator
-                                         (impl/metacircular-analyzer resolve-code# #{~''this})
-                                         {~''this (get impl/*running-system* k#)})
-                                       (get impl/*running-system* k#)))
+                                     (impl/get-ref impl/*running-system* k#))
                                    ~deps))]
                      ~@body))
           assoc
