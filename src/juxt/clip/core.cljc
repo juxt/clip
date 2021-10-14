@@ -44,15 +44,23 @@
   of requiring a code form, in addition the anaphoric variable `this` is
   available to refer to the started component."
   [system-config]
-  (let [{:keys [components executor]
-         :or {executor impl/exec-queue}} system-config
+  (let [{:keys [components executor chains]
+         :or {executor impl/exec-queue
+              chains (merge default-chains (:chains system-config))}} system-config
         [_ component-chain] (safely-derive-parts components [])]
     (executor
-      (for [component component-chain
-            f [(impl/pre-starting-f components)
-               (impl/starting-f components)
-               (impl/post-starting-f components)]]
-        (f component)))))
+      ((get chains :start) component-chain))))
+
+(comment
+  (let [components {:a '{:pre-start (println "pre" 1)
+                         :start (inc 2)
+                         :post-start (println "iam" this)}}]
+    (start
+      {:components components
+       :chains {:start [#_(impl/pre-starting-f components)
+                        (impl/starting-f components)
+                        (impl/post-starting-f components)]}}))
+  )
 
 (defn stop
   "Takes a system config to stop.
@@ -62,13 +70,14 @@
   the target is AutoClosable then .close will be called on it, otherwise
   nothing."
   [system-config running-system]
-  (let [{:keys [components executor]
-         :or {executor impl/exec-queue}} system-config
+  (let [{:keys [components executor chains]
+         :or {executor impl/exec-queue
+              chains (merge default-chains (:chains system-config))}} system-config
         [_ component-chain] (safely-derive-parts
                               (select-keys components (keys running-system))
                               ())]
     (executor
-      (map impl/stopping-f component-chain)
+      ((get chains :stop) component-chain)
       running-system)))
 
 (comment

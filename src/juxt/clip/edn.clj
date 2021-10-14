@@ -14,6 +14,16 @@
     executor
     (requiring-resolve executor)))
 
+(defmethod edn->clj :chains
+  [_k chains]
+  (reduce-kv
+    (fn [chains method chain]
+      (if (symbol? chain)
+        (assoc chains method (requiring-resolve chain))
+        chains))
+    chains
+    chains))
+
 (defn analyze
   [system-config]
   (reduce-kv
