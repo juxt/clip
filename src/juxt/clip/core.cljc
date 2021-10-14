@@ -39,9 +39,9 @@
          [_ component-chain] (safely-derive-parts components [] component-ks)]
      (executor
        (for [component component-chain
-             f [(impl/pre-starting-f components)
-                (impl/starting-f components)
-                (impl/post-starting-f components)]]
+             f [impl/pre-starting-f
+                impl/starting-f
+                impl/post-starting-f]]
          (f component)))))
   ([system-config]
    (start system-config (keys (:components system-config)))))
@@ -154,11 +154,7 @@
                          (zipmap ~deps
                                  (map
                                    (fn [k#]
-                                     (if-let [resolve-code# (get-in impl/*components* [k# :resolve])]
-                                       (impl/evaluator
-                                         (impl/metacircular-analyzer resolve-code# #{~''this})
-                                         {~''this (get impl/*running-system* k#)})
-                                       (get impl/*running-system* k#)))
+                                     (impl/get-ref impl/*running-system* k#))
                                    ~deps))]
                      ~@body))
           assoc

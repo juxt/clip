@@ -211,7 +211,6 @@
    (evaluator analysis nil)))
 
 (def ^:dynamic *running-system*)
-(def ^:dynamic *components*)
 
 (defn stop!
   [inst stop-code]
@@ -259,72 +258,70 @@
            8 #{7 8}}]
     (cycles (sccs g) g)))
 
-(defn clip-ref-fn
-  [components running-system]
-  (let [resolve-ref
-        ;; TODO: there's some trick to having a self-referential memoized fn
+(def ^:dynamic *this* nil)
 
-        ;; TODO: memoize so we only run resolve once for each component, per xf
-        (fn resolve-ref [to]
-          (if-let [resolve-code (get-in components [to :resolve])]
-            (evaluator
-              ;; TODO: This is BAD, this will not aot resolution code!
-              (metacircular-analyzer resolve-code '#{this clip/ref juxt.clip.core/ref})
-              {'this (get running-system to)
-               'clip/ref resolve-ref
-               'juxt.clip.core/ref resolve-ref})
-            (get running-system to)))]
-    (fn [to]
-      (resolve-ref to))))
+(defn get-ref
+  [running-system to]
+  (if-let [r (get-in (meta running-system) [::resolve to])]
+    (binding [*this* (get running-system to)]
+      @r)
+    (get running-system to)))
+
+(defn clip-ref-fn
+  [running-system]
+  (fn [to]
+    (get-ref running-system to)))
 
 (defn starting-f
-  [components]
-  (fn [[k {:keys [start]}]]
-    (let [start-ana (metacircular-analyzer start '#{clip/ref juxt.clip.core/ref})]
-      (fn [rf acc]
-        (rf acc
-            k
-            (binding [*running-system* acc
-                      *components* components]
-              (evaluator start-ana
-                         (let [ref-fn (clip-ref-fn components acc)]
+  [[k {:keys [start resolve]}]]
+  (let [start-ana (metacircular-analyzer start '#{clip/ref juxt.clip.core/ref})
+        resolve-ana (metacircular-analyzer resolve '#{this})]
+    (fn [rf acc]
+      (let [ref-fn (clip-ref-fn acc)
+            v (binding [*running-system* acc]
+                (evaluator start-ana
                            {'clip/ref ref-fn
-                            'juxt.clip.core/ref ref-fn}))))))))
+                            'juxt.clip.core/ref ref-fn}))]
+        (cond-> acc
+          resolve-ana
+          (vary-meta assoc-in [::resolve k]
+                     (delay (evaluator resolve-ana
+                                       {'clip/ref ref-fn
+                                        'juxt.clip.core/ref ref-fn
+                                        'this *this*})))
+          true
+          (rf k v))))))
 
 (defn pre-starting-f
-  [components]
-  (fn [[_ {:keys [pre-start]}]]
-    (if pre-start
-      (let [pre-start-ana (metacircular-analyzer pre-start '#{clip/ref juxt.clip.core/ref})]
-        (fn [_ acc]
-          (binding [*running-system* acc
-                    *components* components]
-            (evaluator
-              pre-start-ana
-              (let [ref-fn (clip-ref-fn components acc)]
-                {'clip/ref ref-fn
-                 'juxt.clip.core/ref ref-fn})))))
-      (fn [_ acc] acc))))
+  [[_ {:keys [pre-start]}]]
+  (if pre-start
+    (let [pre-start-ana (metacircular-analyzer pre-start '#{clip/ref juxt.clip.core/ref})]
+      (fn [_ acc]
+        (binding [*running-system* acc]
+          (evaluator
+            pre-start-ana
+            (let [ref-fn (clip-ref-fn acc)]
+              {'clip/ref ref-fn
+               'juxt.clip.core/ref ref-fn})))))
+    (fn [_ acc] acc)))
 
 (defn post-starting-f
-  [components]
-  (fn [[k {:keys [post-start]}]]
-    (if post-start
-      (let [post-start-ana (metacircular-analyzer
-                             post-start
-                             '#{clip/ref juxt.clip.core/ref this})]
-        (fn [_ acc]
-          (binding [*running-system* acc
-                    *components* components]
-            (evaluator
-              post-start-ana
-              (let [ref-fn (clip-ref-fn components acc)]
-                {'clip/ref ref-fn
-                 'juxt.clip.core/ref ref-fn
-                 'this (get acc k)})))
-          acc))
+  [[k {:keys [post-start]}]]
+  (if post-start
+    (let [post-start-ana (metacircular-analyzer
+                           post-start
+                           '#{clip/ref juxt.clip.core/ref this})]
       (fn [_ acc]
-        acc))))
+        (binding [*running-system* acc]
+          (evaluator
+            post-start-ana
+            (let [ref-fn (clip-ref-fn acc)]
+              {'clip/ref ref-fn
+               'juxt.clip.core/ref ref-fn
+               'this (get acc k)})))
+        acc))
+    (fn [_ acc]
+      acc)))
 
 (defn stopping-f
   [[k {:keys [stop]}]]
