@@ -1,5 +1,5 @@
 (ns juxt.clip.core
-  (:refer-clojure :exclude [ref])
+  (:refer-clojure :exclude [ref require])
   (:require [juxt.clip.impl.core :as impl]
             [clojure.walk :as walk]))
 
@@ -31,6 +31,19 @@
    :stop
    (fn [component-chain]
      (map impl/stopping-f component-chain))})
+
+(defn require
+  "Load all namespaces used by this system.  Useful for AOT.
+  
+  If `:load-chains` is supplied, will be used to choose which chains will be used to determine what code to require.  Otherwise, all will be loaded."
+  [system-config & {:keys [load-chains]}]
+  (let [chains (merge default-chains (:chains system-config))
+        load-chains (or load-chains (keys chains))]
+    (run!
+      (fn [chain-k]
+        (when-let [chain (get chains chain-k)]
+          (doall (chain (:components system-config)))))
+      load-chains)))
 
 (defn start
   "Takes a system config to start.  Returns a running system where the keys map
