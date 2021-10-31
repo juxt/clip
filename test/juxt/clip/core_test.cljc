@@ -56,6 +56,20 @@
                         [{:keys [foo bar]}]
                         (+ foo bar))}}}))
 
+#?(:clj
+   (do
+     (defn make-delay
+       [x]
+       (future x))
+
+     (deftest async-values
+       (is (= {:foo 1 :bar 2}
+              @(clip/start
+                 {:components {:foo `{:start (make-delay 1)
+                                      :resolve inc}
+                               :bar '{:start (clip/ref :foo)}}
+                  :executor juxt.clip.manifold/exec}))))))
+
 (deftest start-graph-ex
   (is (thrown? Throwable
                (clip/start
