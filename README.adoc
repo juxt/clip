@@ -262,6 +262,30 @@ When starting your application from -main there's a few considerations:
   @(promise))
 ----
 
+=== Testing
+
+Clip provides ways to start a subset of a system in order to make testing easier.
+For example, you may wish to test a single ring handler, and pass it any required arguments to start:
+
+[source,clojure]
+----
+(ns my.app.handler-test
+  (:require
+    [clojure.test :refer [deftest is]]
+    [juxt.clip.core :as clip]
+    [my.app.system :refer [get-system]]
+    [ring.mock.request :as mock]))
+
+(deftest handler-test
+  ;; TODO: Exercise for the reader: if (clip/start) fails, clean up the
+  ;; partially started system.
+  (let [system (clip/start (get-system) [:my-handler])]
+    (try
+      (is (= {} (:my-handler system)))
+      (finally
+        (clip/stop system)))))
+----
+
 === Reloaded
 
 Clip provides a namespace for easily setting up a reloaded workflow.

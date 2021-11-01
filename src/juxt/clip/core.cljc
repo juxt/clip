@@ -4,9 +4,9 @@
             [clojure.walk :as walk]))
 
 (defn- safely-derive-parts
-  [components init]
+  [components init & sccs-args]
   (let [g (impl/system-dependency-graph components)
-        sccs (impl/sccs g init)]
+        sccs (apply impl/sccs g init sccs-args)]
     (if-let [errors (seq (impl/dependency-errors sccs g))]
       (throw
         (ex-info
@@ -31,8 +31,9 @@
 
 (defn start
   "Takes a system config to start.  Returns a running system where the keys map
-  to the started component.  Runs the :pre-start, :start and :post-start keys
-  in that order.
+  to the started component.  If provided, only the components in `component-ks`
+  and their transitive dependencies will be started, otherwise all components.
+  Runs the :pre-start, :start and :post-start keys in that order.
   
   :pre-start and :start may contains references, and will be executed without
   an implicit target.
@@ -40,17 +41,19 @@
   as an implict target.  This means that a symbol on it's own will work instead
   of requiring a code form, in addition the anaphoric variable `this` is
   available to refer to the started component."
-  [system-config]
-  (let [{:keys [components executor]
-         :or {executor impl/exec-queue}} system-config
-        executor (->executor executor)
-        [_ component-chain] (safely-derive-parts components [])]
-    (executor
-      (for [component component-chain
-            f [(impl/pre-starting-f components)
-               (impl/starting-f components)
-               (impl/post-starting-f components)]]
-        (f component)))))
+  ([system-config component-ks]
+   (let [{:keys [components executor]
+          :or {executor impl/exec-queue}} system-config
+         executor (->executor executor)
+         [_ component-chain] (safely-derive-parts components [] component-ks)]
+     (executor
+       (for [component component-chain
+             f [(impl/pre-starting-f components)
+                (impl/starting-f components)
+                (impl/post-starting-f components)]]
+         (f component)))))
+  ([system-config]
+   (start system-config (keys (:components system-config)))))
 
 (defn stop
   "Takes a system config to stop.
@@ -69,6 +72,16 @@
     (executor
       (map impl/stopping-f component-chain)
       running-system)))
+
+(defn select
+  "Return system-config with an updated :components to only contain components
+  in `component-ks` & their transitive dependencies."
+  [system-config component-ks]
+  (update system-config
+          :components
+          (fn [components]
+            (let [[_ component-chain] (safely-derive-parts components () component-ks)]
+              (select-keys components (map key component-chain))))))
 
 (comment
   (start
