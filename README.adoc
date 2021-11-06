@@ -210,8 +210,8 @@ When starting your application from -main there's a few considerations:
 * Storing the system for REPLing in later
 * Whether to shutdown the system or not
 
-[source,clojure]
 .Simplest version, blocking forever
+[source,clojure]
 ----
 (ns myapp.main
   (:require
@@ -224,8 +224,8 @@ When starting your application from -main there's a few considerations:
   @(promise))
 ----
 
-[source,clojure]
 .Storing system for later
+[source,clojure]
 ----
 (ns myapp.main
   (:require
@@ -241,8 +241,8 @@ When starting your application from -main there's a few considerations:
   @(promise))
 ----
 
-[source,clojure]
 .Stopping system on shutdown
+[source,clojure]
 ----
 (ns myapp.main
   (:require
@@ -418,8 +418,8 @@ In Clojure, Clip will automatically require & resolve any symbols in the EDN, so
 It was designed to be used with a library such as link:https://github.com/juxt/aero[aero] in order to make dev/prod changes to your system.
 Here's a minimal example system-config configured with aero:
 
-[source,clojure]
 .config.edn
+[source,clojure]
 ----
 {:system-config
  {:components
