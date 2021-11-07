@@ -1,4 +1,4 @@
-(ns juxt.clip.impl.core
+(ns ^:no-doc juxt.clip.impl.core
   (:require [clojure.walk :as walk]))
 
 (defn sccs
