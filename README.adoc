@@ -9,7 +9,9 @@ endif::[]
 Clip is an inversion of control API which minimizes impact on your code.
 It is an alternative to integrant, mount or component.
 
-== Project Status
+== Background
+
+=== Project Status
 
 *Alpha*.
 The core API is unlikely to change significantly, but there may be some small changes to the system-config format.
@@ -17,9 +19,9 @@ Design feedback is still welcome, there is still space for the rationale to chan
 While bugs are avoided, the immaturity of the project makes them more likely.
 Please provide design feedback and report bugs on the link:https://github.com/juxt/clip/issues/new[issue tracker].
 
-== Rationale
+=== Rationale
 
-=== System as data
+==== System as data
 
 Systems may fail during startup, which can leave you in a state where a port is in use, but you have no handle to that partially-started system in order to close it.
 
@@ -42,7 +44,7 @@ In these cases, you will find your system quickly grows large, having your syste
 EDN is a natural way to express data in Clojure.
 A data-driven system should naturally work with EDN without any magic.
 
-=== Boilerplate
+==== Boilerplate
 
 Existing dependency injection libraries require boilerplate for defining your components.
 This either comes in the form of multi-methods which must have their namespaces required for side-effects, or the creation of records in order to implement a protocol.
@@ -53,7 +55,7 @@ This also removes the problem of inventing new strategies for tying a keyword ba
 In addition, normal functions support doc-strings, making for easy documentation.
 Finally, this use of vars means that your library is not coupled to Clip in any way, yet it's easy to use directly from Clip.
 
-=== Transitions
+==== Transitions
 
 Side-effects are part of a startup process.
 The most common example is seeding a database.
@@ -66,7 +68,7 @@ For example, you may need to call `datomic.api/create-database` before connectin
 Clip is also simple, it separates out running many actions on your system.
 This allows you to define custom phases for components, if you need them.
 
-=== Async
+==== Async
 
 Async is a significant part of systems when doing ClojureScript applications.
 Something as simple as reading data from disk or fetching the user from a remote endpoint will cause your entire system to be aware of the callback.
@@ -75,12 +77,32 @@ Interceptors have shown that async can be a layered-on concern, rather than bein
 Clip provides multiple "executors" for running actions against your system, providing out of the box support for sync (no async), promesa, and manifold.
 If you need an additional executor, they are fairly simple to write.
 
-=== Obvious
+==== Obvious
 
 Obvious connections between actions are easier to understand than obscure ones.
 Use of inheritance for references or relying on implicit dependencies increases the obscurity of your API.
 Component and Integrant allow you to spread out your references through the use of `using` and `prep-key`.
 Instead Clip encourages you to make references live in the system, making it always obvious how components connect together.
+
+=== Comparison with other libraries
+
+|===
+|Name      |Need/has wrappers for libs |Extension mechanism |Suspension  |System location |Multiple parallel systems? |Transparent async between components?
+
+|Component |Yes                        |Protocol            |Via library |Map             |Yes                        |No
+|Integrant |Yes                        |Multi-method        |Yes         |Map             |Yes                        |No
+|Clip      |No                         |Code/code as data   |Coming      |Map             |Yes                        |Yes
+|Mount     |No                         |Code                |No          |Namespace       |No                         |No
+
+|===
+
+=== Example Applications
+
+* link:https://github.com/juxt/clip-example[Official clip-example repo]
+* link:https://github.com/PrestanceDesign/todo-backend-clojure-reitit/tree/clip[Implementation of the Todo-Backend API spec,using Ring/Reitit, Clip and next-jdbc]
+* link:https://github.com/dharrigan/startrek[StarTrek, Clojure REST example project using reitit, next-jdbc and malli]
+
+Want to add one? Open an issue or pull request.
 
 == Usage
 
@@ -163,7 +185,7 @@ Supported values for code as data without implicit target:
 
 |===
 
-=== Async
+=== Async Components
 
 In Clip, async is achieved by using alternative executors.
 Out of the box support is provided for link:https://github.com/funcool/promesa[promesa] and link:https://github.com/ztellman/manifold[manifold].
@@ -202,91 +224,7 @@ It will be called at the appropriate time with the resolved value.
 
 ====
 
-=== In -main
-
-When starting your application from -main there's a few considerations:
-
-* Blocking forever (Use `@(promise)` to do this)
-* Storing the system for REPLing in later
-* Whether to shutdown the system or not
-
-.Simplest version, blocking forever
-[source,clojure]
-----
-(ns myapp.main
-  (:require
-    [myapp.system]
-    [juxt.clip.core :as clip]))
-
-(defn -main
-  [& _]
-  (clip/start (myapp.system/system-config :prod))
-  @(promise))
-----
-
-.Storing system for later
-[source,clojure]
-----
-(ns myapp.main
-  (:require
-    [myapp.system]
-    [juxt.clip.core :as clip]))
-
-(def system nil)
-
-(defn -main
-  [& _]
-  (let [system (clip/start (myapp.system/system-config :prod))]
-    (alter-var-root #'system (constantly system)))
-  @(promise))
-----
-
-.Stopping system on shutdown
-[source,clojure]
-----
-(ns myapp.main
-  (:require
-    [myapp.system]
-    [juxt.clip.core :as clip]))
-
-(def system nil)
-
-(defn -main
-  [& _]
-  (let [system-config (myapp.system/system-config :prod)
-        system (clip/start system-config)]
-    (alter-var-root #'system (constantly system))
-    (.addShutdownHook
-     (Runtime/getRuntime)
-     (Thread. #(clip/stop system-config system))))
-  @(promise))
-----
-
-=== Testing
-
-Clip provides ways to start a subset of a system in order to make testing easier.
-For example, you may wish to test a single ring handler, and pass it any required arguments to start:
-
-[source,clojure]
-----
-(ns my.app.handler-test
-  (:require
-    [clojure.test :refer [deftest is]]
-    [juxt.clip.core :as clip]
-    [my.app.system :refer [get-system]]
-    [ring.mock.request :as mock]))
-
-(deftest handler-test
-  ;; TODO: Exercise for the reader: if (clip/start) fails, clean up the
-  ;; partially started system.
-  (let [system (clip/start (get-system) [:my-handler])]
-    (try
-      (is (= {} (:my-handler system)))
-      (finally
-        (clip/stop system)))))
-----
-
-=== Reloaded
+=== Reloaded Workflow
 
 Clip provides a namespace for easily setting up a reloaded workflow.
 You will need to add a dependency on link:https://github.com/clojure/tools.namespace[tools.namespace] to your project.
@@ -303,31 +241,6 @@ Usually you will have such a function defined in another namespace that takes a 
     [juxt.clip.repl :refer [start stop reset set-init! system]]))
 
 (set-init! #(app.system/system-config :dev))
-----
-
-==== Roll your own
-
-Alternatively you can roll your own Reloaded workflow quite easily, but you will miss out on convenient features in the built-in one like auto-cleanup.
-
-[source,clojure]
-----
-(ns dev
-  (:require [juxt.clip.core :as clip]
-            [clojure.tools.namespace.repl :refer [refresh]]))
-
-(def system-config {:a {:start 1}})
-(def system nil)
-
-(defn go []
-  (alter-var-root #'system (constantly (clip/start system-config))))
-
-(defn stop []
-  (alter-var-root #'system
-    (fn [s] (when s (clip/stop system-config s)))))
-
-(defn reset []
-  (stop)
-  (refresh :after 'user/go))
 ----
 
 ==== Async executors
@@ -419,22 +332,10 @@ This macro will convert lists of code it finds into non-evaluated lists, which c
 
 ====
 
-== Comparison with other libraries
-
-|===
-|Name      |Need/has wrappers for libs |Extension mechanism |Suspension  |System location |Multiple parallel systems? |Transparent async between components?
-
-|Component |Yes                        |Protocol            |Via library |Map             |Yes                        |No
-|Integrant |Yes                        |Multi-method        |Yes         |Map             |Yes                        |No
-|Clip      |No                         |Code/code as data   |Coming      |Map             |Yes                        |Yes
-|Mount     |No                         |Code                |No          |Namespace       |No                         |No
-
-|===
-
-== Usage Notes
+== How to
 
 [[EDN]]
-=== EDN / Aero
+=== Use with EDN
 
 Clip works very well with EDN.
 In Clojure, Clip will automatically require & resolve any symbols in the EDN, so that `require` is not required.
@@ -457,10 +358,113 @@ Here's a minimal example system-config configured with aero:
         :stop (hikari-cp.core/close-datasource this)}}}}
 ----
 
-== Example Application
+=== Use from -main
 
-* link:https://github.com/juxt/clip-example[Official clip-example repo]
-* link:https://github.com/PrestanceDesign/todo-backend-clojure-reitit/tree/clip[Implementation of the Todo-Backend API spec,using Ring/Reitit, Clip and next-jdbc]
-* link:https://github.com/dharrigan/startrek[StarTrek, Clojure REST example project using reitit, next-jdbc and malli]
+When starting your application from -main there's a few considerations:
 
-Want to add one? Open an issue or pull request.
+* Blocking forever (Use `@(promise)` to do this)
+* Storing the system for REPLing in later
+* Whether to shutdown the system or not
+
+.Simplest version, blocking forever
+[source,clojure]
+----
+(ns myapp.main
+  (:require
+    [myapp.system]
+    [juxt.clip.core :as clip]))
+
+(defn -main
+  [& _]
+  (clip/start (myapp.system/system-config :prod))
+  @(promise))
+----
+
+.Storing system for later
+[source,clojure]
+----
+(ns myapp.main
+  (:require
+    [myapp.system]
+    [juxt.clip.core :as clip]))
+
+(def system nil)
+
+(defn -main
+  [& _]
+  (let [system (clip/start (myapp.system/system-config :prod))]
+    (alter-var-root #'system (constantly system)))
+  @(promise))
+----
+
+.Stopping system on shutdown
+[source,clojure]
+----
+(ns myapp.main
+  (:require
+    [myapp.system]
+    [juxt.clip.core :as clip]))
+
+(def system nil)
+
+(defn -main
+  [& _]
+  (let [system-config (myapp.system/system-config :prod)
+        system (clip/start system-config)]
+    (alter-var-root #'system (constantly system))
+    (.addShutdownHook
+     (Runtime/getRuntime)
+     (Thread. #(clip/stop system-config system))))
+  @(promise))
+----
+
+=== Test systems
+
+Clip provides ways to start a subset of a system in order to make testing easier.
+For example, you may wish to test a single ring handler, and pass it any required arguments to start:
+
+[source,clojure]
+----
+(ns my.app.handler-test
+  (:require
+    [clojure.test :refer [deftest is]]
+    [juxt.clip.core :as clip]
+    [my.app.system :refer [get-system]]
+    [ring.mock.request :as mock]))
+
+(deftest handler-test
+  ;; TODO: Exercise for the reader: if (clip/start) fails, clean up the
+  ;; partially started system.
+  (let [system (clip/start (get-system) [:my-handler])]
+    (try
+      (is (= {} (:my-handler system)))
+      (finally
+        (clip/stop system)))))
+----
+
+=== Custom reloaded workflow
+
+Alternatively you can roll your own Reloaded workflow quite easily, but you will miss out on convenient features in the built-in one like auto-cleanup.
+
+[source,clojure]
+----
+(ns dev
+  (:require [juxt.clip.core :as clip]
+            [clojure.tools.namespace.repl :refer [refresh]]))
+
+(def system-config {:a {:start 1}})
+(def system nil)
+
+(defn go []
+  (alter-var-root #'system (constantly (clip/start system-config))))
+
+(defn stop []
+  (alter-var-root #'system
+    (fn [s] (when s (clip/stop system-config s)))))
+
+(defn reset []
+  (stop)
+  (refresh :after 'user/go))
+----
+
+
