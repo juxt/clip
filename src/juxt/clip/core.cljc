@@ -168,3 +168,38 @@
           assoc
           ::deps
           ~deps))))
+
+#?(:clj (defmacro with-system
+          "Takes a binding and a system like with-open, and tries to close the
+          system even when stopping causes an exception.
+          
+          If an exception is thrown during start, then the partially started
+          system will be stopped and the exception rethrown.  If stopping that
+          system throws an exception, a new exception will be thrown with the
+          original exception as the cause, and the stopping exception under
+          `::stop-exception`.
+
+          If an exception is thrown during the final stop, then the exception
+          will be thrown."
+          [[binding system-config] & body]
+          `(let [system-config# ~system-config
+                 system#
+                 (try
+                   (start system-config#)
+                   (catch Exception e#
+                     (when-let [partial-system# (::system (ex-data e#))]
+                       (try
+                         (stop partial-system#)
+                         (catch Exception e-stop#
+                           (throw
+                             (ex-info
+                               "Exception thrown while starting system, failed to stop partially started system."
+                               {::stop-exception e-stop#}
+                               e#))
+                           )))
+                     (throw e#)))
+                 ~binding system#]
+             (try
+               ~@body
+               (finally
+                 (stop system-config# system#))))))

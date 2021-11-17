@@ -439,7 +439,11 @@ You need to involve Clip in the AOT process in order to require any namespaces r
 
 === Test systems
 
-Clip provides ways to start a subset of a system in order to make testing easier.
+Clip provides 2 useful mechanisms for testing:
+
+. `select` to get a subset of a system-config with only the specified components.  `start` also takes a list of components to start as a convenience.
+. `with-system` macro which can start a system, and tries very hard to close it.
+
 For example, you may wish to test a single ring handler, and pass it any required arguments to start:
 
 [source,clojure]
@@ -452,9 +456,7 @@ For example, you may wish to test a single ring handler, and pass it any require
     [ring.mock.request :as mock]))
 
 (deftest handler-test
-  ;; TODO: Exercise for the reader: if (clip/start) fails, clean up the
-  ;; partially started system.
-  (let [system (clip/start (get-system) [:my-handler])]
+  (clip/with-system [system (clip/select (get-system) [:my-handler])]
     (try
       (is (= {} (:my-handler system)))
       (finally

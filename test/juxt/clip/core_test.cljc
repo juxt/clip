@@ -257,3 +257,23 @@
               :d {:start 30}
               :e {:start (dec (clip/ref :d))}}}
            [:b :c]))))
+
+#?(:clj
+   (deftest with-system-test
+     (is (= 10 (clip/with-system [x {:components {:foo {:start 10}}}]
+                 (get x :foo))))
+
+     (is (thrown-with-msg?
+           clojure.lang.ExceptionInfo
+           #"Exception thrown while starting system"
+           (clip/with-system [x {:components {:foo {:start '(+ "foo")}}}]
+             (get x :foo))))
+
+     (let [stopped? (atom false)]
+       (is (thrown-with-msg?
+             clojure.lang.ExceptionInfo
+             #"^juxt.clip.core_test Exception$"
+             (clip/with-system [_ {:components {:foo {:start '(+ 1)
+                                                      :stop (list reset! stopped? true)}}}]
+               (throw (ex-info "juxt.clip.core_test Exception" {})))))
+       (is @stopped? "System wasn't stopped when exception thrown in body"))))
