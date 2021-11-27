@@ -232,6 +232,7 @@ You will need to add a dependency on link:https://github.com/clojure/tools.names
 
 You should call `set-init!` with a function which will return your system-config.
 Usually you will have such a function defined in another namespace that takes a "profile" or "config" in order to be parameterized to development or production.
+If you are using <<EDN>> to load your system, ensure your function calls `clip.edn/load`.
 
 
 [source,clojure]
