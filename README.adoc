@@ -486,7 +486,7 @@ Alternatively you can roll your own Reloaded workflow quite easily, but you will
 
 (defn reset []
   (stop)
-  (refresh :after 'user/go))
+  (refresh :after 'dev/go))
 ----
 
 
