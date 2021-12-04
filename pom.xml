@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>juxt</groupId>
   <artifactId>clip</artifactId>
-  <version>0.26.0</version>
+  <version>0.27.0</version>
   <name>clip</name>
   <licenses>
     <license>
@@ -44,7 +44,7 @@
   </repositories>
   <scm>
     <url>https://github.com/juxt/clip</url>
-    <tag>v0.26.0</tag>
+    <tag>v0.27.0</tag>
     <connection>scm:git:git://github.com/juxt/clip.git</connection>
     <developerConnection>scm:git:git@github.com:juxt/clip.git</developerConnection>
   </scm>
