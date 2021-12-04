@@ -5,6 +5,13 @@
   <artifactId>clip</artifactId>
   <version>0.26.0</version>
   <name>clip</name>
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <dependencies>
     <dependency>
