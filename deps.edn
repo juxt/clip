@@ -9,11 +9,13 @@
     aleph/aleph {:mvn/version "0.4.7-alpha7"}
     com.datomic/datomic-free {:mvn/version "0.9.5697"}
     org.clojure/tools.namespace {:mvn/version "0.3.1"}}}
-  :jar
-  {:replace-deps {pack/pack.alpha
-                  {:git/url "https://github.com/juxt/pack.alpha.git"
-                   :sha "2769a6224bfb938e777906ea311b3daf7d2220f5"}}
-   :main-opts ["-m" "mach.pack.alpha.skinny" "--no-libs" "--project-path" "clip.jar"]}
+  :build
+  {:deps {io.github.juxt/pack.alpha {:git/sha "9fd4a63ddeec3bedcbc819422de5a40ccb9eb8c9"}
+          io.github.clojure/tools.build {:git/tag "v0.6.8" :git/sha "d79ae84"}
+          org.clojure/data.zip {:mvn/version "1.0.0"}
+          org.clojure/data.xml {:mvn/version "0.2.0-alpha6"}}
+   :ns-default build
+   :paths ["."]}
 
   :cljs-repl
   {:extra-deps

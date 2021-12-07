@@ -2,3 +2,4 @@
 .*-port
 clip.jar
 .clj-kondo/.cache/
+/pom.xml
