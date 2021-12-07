@@ -26,7 +26,11 @@
     {:basis (b/create-basis)
      :path "clip.jar"
      :lib 'juxt/clip
-     :pom (let [tag (b/git-process {:git-args ["describe"]})
+     :pom (let [tag (or (b/git-process {:git-args ["describe" "--exact-match"]})
+                        (do
+                          (binding [*out* *err*]
+                            (println "WARNING: Not on a tagged version"))
+                          (b/git-process {:git-args ["describe"]})))
                 version (subs tag 1)
                 xml (pom tag version)]
             (with-open [w (io/writer (io/file "pom.xml"))]
