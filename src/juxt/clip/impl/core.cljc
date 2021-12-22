@@ -150,10 +150,12 @@
 (defprotocol Evaluate
   (evaluate [x env]))
 
+#?(:clj
+   (extend-protocol Evaluate
+     Object
+     (evaluate [x _env] x))
+   
 (extend-protocol Evaluate
-  Object
-  (evaluate [x _env] x)
-
   nil
   (evaluate [x _env] x))
 
