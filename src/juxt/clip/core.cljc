@@ -189,7 +189,7 @@
                    (catch Exception e#
                      (when-let [partial-system# (::system (ex-data e#))]
                        (try
-                         (stop partial-system#)
+                         (stop system-config# partial-system#)
                          (catch Exception e-stop#
                            (throw
                              (ex-info
