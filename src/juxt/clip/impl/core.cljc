@@ -305,7 +305,8 @@
             pre-start-ana
             (let [ref-fn (clip-ref-fn acc)]
               {'clip/ref ref-fn
-               'juxt.clip.core/ref ref-fn})))))
+               'juxt.clip.core/ref ref-fn})))
+        acc))
     (fn [_ acc] acc)))
 
 (defn post-starting-f
