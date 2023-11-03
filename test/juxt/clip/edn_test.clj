@@ -7,10 +7,10 @@
 
 (deftest analyze-test
   (is (= {:components {}}
-         (clip.edn/analyze
+         (clip.edn/load
            {:components {}})))
   (is (= {:components {}
           :executor #'foo}
-         (clip.edn/analyze
+         (clip.edn/load
            {:components {}
             :executor `foo}))))
