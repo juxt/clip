@@ -115,7 +115,7 @@
 
   (let [closed? (atom false)
         auto-closable (reify
-                        java.io.Closeable
+                        java.lang.AutoCloseable
                         (close [this]
                           (reset! closed? true)))]
     (clip/stop {:components

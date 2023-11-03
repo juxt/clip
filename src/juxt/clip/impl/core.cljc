@@ -221,8 +221,8 @@
     stop-code
     (evaluator stop-code {'this inst})
     #?@(:clj
-         [(isa? (class inst) java.io.Closeable)
-          (.close ^java.io.Closeable inst)])))
+        [(instance? java.lang.AutoCloseable inst)
+         (.close ^java.lang.AutoCloseable inst)])))
 
 (defn component-chain
   [system]
@@ -238,7 +238,7 @@
   (defn StatefulThing
     []
     (reify
-      java.io.Closeable
+      java.lang.AutoCloseable
       (close [this]
         (println  "Closing a stateful thing"))))
   (def system2
